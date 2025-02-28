@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -7,7 +6,7 @@ interface HeaderProps {
   title?: string;
 }
 
-const Header = ({ title = "CostWise Planner" }: HeaderProps) => {
+const Header = ({ title = "Floor Plan Analyzer" }: HeaderProps) => {
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -41,7 +40,7 @@ const Header = ({ title = "CostWise Planner" }: HeaderProps) => {
           className="flex items-center"
         >
           <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-gray-900 to-gray-700 flex items-center justify-center mr-3">
-            <span className="text-white font-medium text-lg">C</span>
+            <span className="text-white font-medium text-lg">F</span>
           </div>
           
           <h1 className="text-xl font-medium tracking-tight">
@@ -65,7 +64,7 @@ const Header = ({ title = "CostWise Planner" }: HeaderProps) => {
             href="#" 
             className="text-sm text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md transition-colors duration-200 dark:text-gray-300 dark:hover:text-white"
           >
-            Estimates
+            Analysis
           </a>
           <a 
             href="#" 

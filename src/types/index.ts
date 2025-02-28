@@ -1,29 +1,19 @@
-export interface EstimationCategory {
+export interface RoomAnalysisResult {
   id: string;
-  name: string;
-  cost: number;
-  description: string;
-}
-
-export interface EstimationResult {
-  id: string;
-  totalCost: number;
-  categories: EstimationCategory[];
-  currency: string;
+  totalArea: number;
+  roomDetection?: RoboflowResponse;
   createdAt: Date;
   fileName: string;
   imageUrl: string;
   status: 'pending' | 'processing' | 'completed' | 'failed';
   notes?: string;
-  roomDetection?: RoboflowResponse;
-  estimatedArea?: number;
 }
 
 export interface Project {
   id: string;
   name: string;
   description?: string;
-  estimations: EstimationResult[];
+  analyses: RoomAnalysisResult[];
   createdAt: Date;
   updatedAt: Date;
 }

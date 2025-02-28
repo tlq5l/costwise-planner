@@ -1,11 +1,10 @@
-
 import { useState } from "react";
 import { motion } from "framer-motion";
 import Header from "@/components/Header";
 import FileUploader from "@/components/FileUploader";
-import EstimationResult from "@/components/EstimationResult";
+import RoomAnalysisResult from "@/components/RoomAnalysisResult";
 import ProjectItem from "@/components/ProjectItem";
-import { EstimationResult as EstimationResultType, Project } from "@/types";
+import { RoomAnalysisResult as RoomAnalysisResultType, Project } from "@/types";
 
 // Sample recent projects data
 const recentProjects: Project[] = [
@@ -13,12 +12,10 @@ const recentProjects: Project[] = [
     id: "1",
     name: "Modern Farmhouse",
     description: "Single-family residence with open floor plan and high ceilings",
-    estimations: [
+    analyses: [
       {
         id: "101",
-        totalCost: 425000,
-        categories: [],
-        currency: "USD",
+        totalArea: 2250,
         createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
         fileName: "farmhouse_floorplan.png",
         imageUrl: "",
@@ -32,12 +29,10 @@ const recentProjects: Project[] = [
     id: "2",
     name: "Urban Loft Renovation",
     description: "Converting industrial space to modern living area with exposed brick",
-    estimations: [
+    analyses: [
       {
         id: "102",
-        totalCost: 285000,
-        categories: [],
-        currency: "USD",
+        totalArea: 1850,
         createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000),
         fileName: "loft_plans.jpg",
         imageUrl: "",
@@ -51,12 +46,10 @@ const recentProjects: Project[] = [
     id: "3",
     name: "Coastal Cottage",
     description: "Beach-adjacent residence with wrap-around porch and open kitchen",
-    estimations: [
+    analyses: [
       {
         id: "103",
-        totalCost: 380000,
-        categories: [],
-        currency: "USD",
+        totalArea: 1920,
         createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
         fileName: "cottage_blueprint.pdf",
         imageUrl: "",
@@ -69,10 +62,10 @@ const recentProjects: Project[] = [
 ];
 
 const Home = () => {
-  const [estimation, setEstimation] = useState<EstimationResultType | null>(null);
+  const [analysisResult, setAnalysisResult] = useState<RoomAnalysisResultType | null>(null);
   
-  const handleEstimationComplete = (result: EstimationResultType) => {
-    setEstimation(result);
+  const handleAnalysisComplete = (result: RoomAnalysisResultType) => {
+    setAnalysisResult(result);
     
     // Scroll to the results after a short delay
     setTimeout(() => {
@@ -85,7 +78,7 @@ const Home = () => {
   
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <Header />
+      <Header title="Floor Plan Analyzer" />
       
       <main className="pt-24 pb-20">
         <section className="py-16 md:py-24">
@@ -97,22 +90,22 @@ const Home = () => {
               className="text-center max-w-3xl mx-auto mb-16"
             >
               <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-6">
-                AI-Powered Construction Cost Estimation
+                AI-Powered Room Area Calculator
               </h1>
               <p className="text-xl text-gray-600 dark:text-gray-400">
-                Upload your floor plan and get an accurate cost breakdown in seconds, powered by advanced AI analysis.
+                Upload your floor plan and get detailed room measurements in seconds, powered by advanced AI analysis.
               </p>
             </motion.div>
             
-            <FileUploader onEstimationComplete={handleEstimationComplete} />
+            <FileUploader onAnalysisComplete={handleAnalysisComplete} />
             
-            {estimation && (
-              <EstimationResult result={estimation} />
+            {analysisResult && (
+              <RoomAnalysisResult result={analysisResult} />
             )}
           </div>
         </section>
         
-        {!estimation && (
+        {!analysisResult && (
           <section className="py-12">
             <div className="container px-4 md:px-6">
               <div className="flex flex-col md:flex-row justify-between items-baseline mb-8">
@@ -140,13 +133,13 @@ const Home = () => {
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="flex items-center mb-4 md:mb-0">
               <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-gray-900 to-gray-700 flex items-center justify-center mr-2">
-                <span className="text-white font-medium text-xs">C</span>
+                <span className="text-white font-medium text-xs">F</span>
               </div>
-              <span className="text-sm font-medium">CostWise Planner</span>
+              <span className="text-sm font-medium">Floor Plan Analyzer</span>
             </div>
             
             <div className="text-sm text-gray-500 dark:text-gray-400">
-              © {new Date().getFullYear()} CostWise. All rights reserved.
+              © {new Date().getFullYear()} Floor Plan Analyzer. All rights reserved.
             </div>
           </div>
         </div>

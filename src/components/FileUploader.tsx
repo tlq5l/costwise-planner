@@ -1,16 +1,16 @@
 import { toast } from "@/hooks/use-toast";
-import { processFloorPlan } from "@/lib/gemini";
+import { processFloorPlan } from "@/lib/roomAnalysis";
 import { detectRoomsWithAnimation } from "@/lib/roboflow";
-import type { ClassifiedRoom, EstimationResult, UploadStatus } from "@/types";
+import type { ClassifiedRoom, RoomAnalysisResult, UploadStatus } from "@/types";
 import { AnimatePresence, motion } from "framer-motion";
 import { Check, RefreshCw, Scan, Upload, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 interface FileUploaderProps {
-  onEstimationComplete: (result: EstimationResult) => void;
+  onAnalysisComplete: (result: RoomAnalysisResult) => void;
 }
 
-const FileUploader = ({ onEstimationComplete }: FileUploaderProps) => {
+const FileUploader = ({ onAnalysisComplete }: FileUploaderProps) => {
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [uploadStatus, setUploadStatus] = useState<UploadStatus>("idle");
@@ -159,7 +159,7 @@ const FileUploader = ({ onEstimationComplete }: FileUploaderProps) => {
           // Room detection complete, proceed to processing
           setUploadStatus("processing");
 
-          // Process the floor plan using Gemini AI
+          // Process the floor plan using room analysis
           processFloorPlan(file).then(result => {
             // Override the room detection with our enhanced version
             const enhancedResult = {
@@ -169,7 +169,7 @@ const FileUploader = ({ onEstimationComplete }: FileUploaderProps) => {
 
             // Update status and notify parent component
             setUploadStatus("success");
-            onEstimationComplete(enhancedResult);
+            onAnalysisComplete(enhancedResult);
 
             toast({
               title: "Analysis complete",
@@ -287,7 +287,7 @@ const FileUploader = ({ onEstimationComplete }: FileUploaderProps) => {
       >
         <h2 className="text-2xl font-medium mb-3">Floor Plan Analyzer</h2>
         <p className="text-gray-600 dark:text-gray-400 max-w-xl mx-auto">
-          Upload your floor plan and our AI will analyze it to create a detailed cost estimation for your construction project.
+          Upload your floor plan and our AI will analyze it to calculate the area of each room, helping you plan renovations, furniture layout, and more.
         </p>
       </motion.div>
 

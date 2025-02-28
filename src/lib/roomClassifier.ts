@@ -37,6 +37,27 @@ const ASPECT_RATIO = {
 export const PIXELS_TO_FEET = 0.1;
 
 /**
+ * Calculate polygon area using the Shoelace formula (Surveyor's formula)
+ * This provides an accurate area calculation for any polygon shape
+ */
+export function calculatePolygonArea(points: { x: number; y: number }[]): number {
+  let area = 0;
+  const n = points.length;
+  
+  // Need at least 3 points to form a polygon
+  if (n < 3) return 0;
+  
+  for (let i = 0; i < n; i++) {
+    const j = (i + 1) % n;
+    area += points[i].x * points[j].y;
+    area -= points[j].x * points[i].y;
+  }
+  
+  area = Math.abs(area) / 2;
+  return area;
+}
+
+/**
  * Try to identify a room type from the Roboflow class name
  */
 export function identifyRoomTypeFromClass(className: string): RoomType {
@@ -68,11 +89,13 @@ export function classifyRoom(room: RoboflowPrediction, pixelsToFeet: number = PI
   // Calculate dimensions
   const width = room.width;
   const height = room.height;
-  const area = width * height;
-
+  
+  // Calculate area using the Shoelace formula for more accuracy with irregular shapes
+  const area = calculatePolygonArea(room.points);
+  
   const widthFt = width * pixelsToFeet;
   const heightFt = height * pixelsToFeet;
-  const areaFt = widthFt * heightFt;
+  const areaFt = area * pixelsToFeet * pixelsToFeet;
 
   // Calculate aspect ratio (always <= 1.0, representing narrowness)
   const aspectRatio = Math.min(width / height, height / width);
@@ -145,4 +168,11 @@ export function classifyRooms(predictions: RoboflowPrediction[], pixelsToFeet: n
  */
 export function formatDimension(value: number, unit = 'ft'): string {
   return `${Math.round(value * 10) / 10} ${unit}`;
+}
+
+/**
+ * Calculates the total area of all rooms
+ */
+export function calculateTotalArea(rooms: ClassifiedRoom[]): number {
+  return rooms.reduce((total, room) => total + room.dimensions.areaFt, 0);
 }

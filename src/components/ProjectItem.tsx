@@ -1,4 +1,3 @@
-
 import { motion } from "framer-motion";
 import { Clock, ArrowRight } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
@@ -8,16 +7,8 @@ interface ProjectItemProps {
   project: Project;
 }
 
-const formatCurrency = (value: number, currency: string): string => {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 0,
-  }).format(value);
-};
-
 const ProjectItem = ({ project }: ProjectItemProps) => {
-  const latestEstimation = project.estimations[0];
+  const latestAnalysis = project.analyses[0];
   
   return (
     <motion.div
@@ -41,13 +32,13 @@ const ProjectItem = ({ project }: ProjectItemProps) => {
             </div>
           </div>
           
-          {latestEstimation && (
+          {latestAnalysis && (
             <div className="text-right">
               <div className="text-lg font-semibold">
-                {formatCurrency(latestEstimation.totalCost, latestEstimation.currency)}
+                {Math.round(latestAnalysis.totalArea)} sq.ft
               </div>
               <div className="text-xs text-gray-500 dark:text-gray-400">
-                Total estimate
+                Total area
               </div>
             </div>
           )}
@@ -61,7 +52,7 @@ const ProjectItem = ({ project }: ProjectItemProps) => {
         
         <div className="flex items-center justify-between">
           <div className="text-sm text-gray-500 dark:text-gray-400">
-            {project.estimations.length} estimation{project.estimations.length !== 1 ? 's' : ''}
+            {project.analyses.length} analysis{project.analyses.length !== 1 ? 'es' : ''}
           </div>
           
           <motion.button
