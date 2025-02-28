@@ -1,5 +1,5 @@
-import type { ClassifiedRoom, RoboflowPrediction } from "@/types";
-import { RoomType } from "@/types";
+import type { ClassifiedRoom, RoboflowPrediction, FurnitureItem } from "@/types";
+import { RoomType, FurnitureType } from "@/types";
 
 // Color mappings for different room types
 export const ROOM_COLORS: Record<RoomType, string> = {
@@ -161,6 +161,157 @@ export function classifyRoom(room: RoboflowPrediction, pixelsToFeet: number = PI
  */
 export function classifyRooms(predictions: RoboflowPrediction[], pixelsToFeet: number = PIXELS_TO_FEET): ClassifiedRoom[] {
   return predictions.map(prediction => classifyRoom(prediction, pixelsToFeet));
+}
+
+/**
+ * Infer room type based on the furniture items present in a room
+ */
+export function inferRoomTypeFromFurniture(furniture: FurnitureItem[]): RoomType {
+  if (!furniture || furniture.length === 0) {
+    return RoomType.UNKNOWN;
+  }
+
+  // Create a counter for each furniture type
+  const furnitureCounts: Record<FurnitureType, number> = {} as Record<FurnitureType, number>;
+  
+  // Count occurrences of each furniture type
+  furniture.forEach(item => {
+    if (!furnitureCounts[item.furnitureType]) {
+      furnitureCounts[item.furnitureType] = 0;
+    }
+    furnitureCounts[item.furnitureType]++;
+  });
+
+  // Create a score for each room type based on furniture
+  const roomScores: Record<RoomType, number> = {
+    [RoomType.UNKNOWN]: 0,
+    [RoomType.BEDROOM]: 0,
+    [RoomType.BATHROOM]: 0,
+    [RoomType.KITCHEN]: 0,
+    [RoomType.LIVING_ROOM]: 0,
+    [RoomType.DINING_ROOM]: 0,
+    [RoomType.HALLWAY]: 0,
+    [RoomType.CLOSET]: 0,
+    [RoomType.LAUNDRY]: 0,
+    [RoomType.GARAGE]: 0,
+    [RoomType.OFFICE]: 0,
+    [RoomType.OTHER]: 0,
+  };
+
+  // Assign scores based on furniture types
+  // Bedroom indicators
+  if (furnitureCounts[FurnitureType.BED]) {
+    roomScores[RoomType.BEDROOM] += furnitureCounts[FurnitureType.BED] * 10;
+  }
+  
+  // Bathroom indicators
+  if (furnitureCounts[FurnitureType.TOILET]) {
+    roomScores[RoomType.BATHROOM] += furnitureCounts[FurnitureType.TOILET] * 10;
+  }
+  if (furnitureCounts[FurnitureType.BATHTUB]) {
+    roomScores[RoomType.BATHROOM] += furnitureCounts[FurnitureType.BATHTUB] * 8;
+  }
+  if (furnitureCounts[FurnitureType.SINK]) {
+    // Sinks can be in bathrooms and kitchens, so lower weight
+    roomScores[RoomType.BATHROOM] += furnitureCounts[FurnitureType.SINK] * 3;
+    roomScores[RoomType.KITCHEN] += furnitureCounts[FurnitureType.SINK] * 2;
+  }
+  
+  // Kitchen indicators
+  if (furnitureCounts[FurnitureType.STOVE]) {
+    roomScores[RoomType.KITCHEN] += furnitureCounts[FurnitureType.STOVE] * 10;
+  }
+  if (furnitureCounts[FurnitureType.REFRIGERATOR]) {
+    roomScores[RoomType.KITCHEN] += furnitureCounts[FurnitureType.REFRIGERATOR] * 10;
+  }
+  if (furnitureCounts[FurnitureType.COUNTER]) {
+    roomScores[RoomType.KITCHEN] += furnitureCounts[FurnitureType.COUNTER] * 5;
+  }
+  
+  // Living room indicators
+  if (furnitureCounts[FurnitureType.SOFA]) {
+    roomScores[RoomType.LIVING_ROOM] += furnitureCounts[FurnitureType.SOFA] * 8;
+  }
+  
+  // Dining room indicators
+  if (furnitureCounts[FurnitureType.TABLE]) {
+    // Tables can be in different rooms, with different weights
+    roomScores[RoomType.DINING_ROOM] += furnitureCounts[FurnitureType.TABLE] * 5;
+    roomScores[RoomType.KITCHEN] += furnitureCounts[FurnitureType.TABLE] * 2;
+    roomScores[RoomType.OFFICE] += furnitureCounts[FurnitureType.TABLE] * 2;
+  }
+  
+  // Chair consideration - if many chairs and a table, likely dining room
+  if (furnitureCounts[FurnitureType.CHAIR] && furnitureCounts[FurnitureType.CHAIR] >= 3 && furnitureCounts[FurnitureType.TABLE]) {
+    roomScores[RoomType.DINING_ROOM] += 8;
+  } else if (furnitureCounts[FurnitureType.CHAIR]) {
+    // Chairs can be anywhere, lower weight
+    roomScores[RoomType.DINING_ROOM] += furnitureCounts[FurnitureType.CHAIR] * 1;
+    roomScores[RoomType.OFFICE] += furnitureCounts[FurnitureType.CHAIR] * 1;
+    roomScores[RoomType.LIVING_ROOM] += furnitureCounts[FurnitureType.CHAIR] * 0.5;
+  }
+  
+  // Storage indicators for closets
+  if (furnitureCounts[FurnitureType.CABINET]) {
+    roomScores[RoomType.CLOSET] += furnitureCounts[FurnitureType.CABINET] * 3;
+    roomScores[RoomType.KITCHEN] += furnitureCounts[FurnitureType.CABINET] * 2;
+  }
+  
+  // Find the room type with the highest score
+  let maxScore = 0;
+  let inferredRoomType = RoomType.UNKNOWN;
+  
+  for (const [roomType, score] of Object.entries(roomScores)) {
+    if (score > maxScore) {
+      maxScore = score;
+      inferredRoomType = roomType as RoomType;
+    }
+  }
+  
+  // Only return a room type if we have a meaningful score
+  return maxScore >= 3 ? inferredRoomType : RoomType.UNKNOWN;
+}
+
+/**
+ * Enhanced room classification that takes furniture into account
+ */
+export function classifyRoomsByFurniture(
+  rooms: ClassifiedRoom[],
+  furniture: FurnitureItem[]
+): ClassifiedRoom[] {
+  // First, organize furniture by room based on the room property
+  const furnitureByRoom: Record<string, FurnitureItem[]> = {};
+  
+  // Group furniture by room
+  furniture.forEach(item => {
+    if (item.room) {
+      if (!furnitureByRoom[item.room]) {
+        furnitureByRoom[item.room] = [];
+      }
+      furnitureByRoom[item.room].push(item);
+    }
+  });
+  
+  // Enhanced room classification
+  return rooms.map(room => {
+    // Get furniture in this room
+    const roomFurniture = furnitureByRoom[room.detection_id] || [];
+    
+    // Infer room type from furniture
+    const inferredType = inferRoomTypeFromFurniture(roomFurniture);
+    
+    // Only update if we inferred a specific room type and the current room type is unknown or generic
+    if (inferredType !== RoomType.UNKNOWN &&
+        (room.roomType === RoomType.UNKNOWN || room.roomType === RoomType.OTHER)) {
+      return {
+        ...room,
+        roomType: inferredType,
+        color: ROOM_COLORS[inferredType]
+      };
+    }
+    
+    return room;
+  });
 }
 
 /**

@@ -7,7 +7,7 @@ import type {
   CombinedFloorPlanAnalysis
 } from "@/types";
 import { detectAndClassifyRoomsFromBase64 } from "./roboflow";
-import { calculateTotalArea } from "./roomClassifier";
+import { calculateTotalArea, classifyRoomsByFurniture } from "./roomClassifier";
 import {
   detectFurnitureFromBase64,
   assignFurnitureToRooms,
@@ -26,7 +26,8 @@ const delay = (ms: number): Promise<void> => {
 };
 
 /**
- * Processes a floor plan image to detect rooms and furniture
+ * Processes a floor plan image to detect rooms and furniture,
+ * then enhances room classification with furniture detection
  */
 export const processFloorPlan = async (
   file: File
@@ -50,14 +51,38 @@ export const processFloorPlan = async (
     // Create a URL for the image preview
     const imageUrl = URL.createObjectURL(file);
 
-    // Get room detection and classification results
+    // First detect furniture - the semantic clues that will help us classify rooms
+    const furnitureDetection = await detectFurnitureFromBase64(base64Image);
+    
+    // Then detect and classify rooms
     const roomDetection = await detectAndClassifyRoomsFromBase64(base64Image);
     
-    // Get furniture detection results
-    const furnitureDetection = await detectFurnitureFromBase64(base64Image);
+    // Assign furniture to rooms
+    const assignedFurniture = assignFurnitureToRooms(
+      furnitureDetection.predictions,
+      roomDetection.predictions
+    );
+    
+    // Update room classification based on furniture
+    const enhancedRooms = classifyRoomsByFurniture(
+      roomDetection.predictions,
+      assignedFurniture
+    );
+    
+    // Create enhanced room detection object
+    const enhancedRoomDetection: ProcessedRoboflowResponse = {
+      ...roomDetection,
+      predictions: enhancedRooms
+    };
+    
+    // Create enhanced furniture detection object
+    const enhancedFurnitureDetection: FurnitureDetectionResponse = {
+      ...furnitureDetection,
+      predictions: assignedFurniture
+    };
 
-    // Calculate total area
-    const totalArea = calculateTotalArea(roomDetection.predictions);
+    // Calculate total area with enhanced room classification
+    const totalArea = calculateTotalArea(enhancedRooms);
 
     return {
       id: generateId(),
@@ -66,8 +91,8 @@ export const processFloorPlan = async (
       fileName: file.name,
       imageUrl,
       status: 'completed',
-      roomDetection,
-      furnitureDetection,
+      roomDetection: enhancedRoomDetection,
+      furnitureDetection: enhancedFurnitureDetection,
     };
   } catch (error) {
     console.error("Error processing floor plan:", error);
@@ -77,6 +102,7 @@ export const processFloorPlan = async (
 
 /**
  * Combines room and furniture detection into a unified analysis
+ * with enhanced room classification
  */
 export const combineFloorPlanAnalysis = (
   roomDetection: ProcessedRoboflowResponse,
@@ -86,12 +112,17 @@ export const combineFloorPlanAnalysis = (
   const rooms = roomDetection.predictions;
   const furniture = furnitureDetection.predictions;
   
-  // Assign furniture to rooms
-  const assignedFurniture = assignFurnitureToRooms(furniture, rooms);
+  // Assign furniture to rooms if not already done
+  const assignedFurniture = furniture.some(item => item.room)
+    ? furniture
+    : assignFurnitureToRooms(furniture, rooms);
+  
+  // Enhance room classification with furniture data
+  const enhancedRooms = classifyRoomsByFurniture(rooms, assignedFurniture);
   
   // Calculate room totals
-  const totalArea = calculateTotalArea(rooms);
-  const roomCount = rooms.length;
+  const totalArea = calculateTotalArea(enhancedRooms);
+  const roomCount = enhancedRooms.length;
   
   // Count furniture by type
   const furnitureTotals = countFurnitureByType(assignedFurniture);
@@ -100,7 +131,7 @@ export const combineFloorPlanAnalysis = (
   const roomFurnitureCounts = countFurnitureByRoom(assignedFurniture);
   
   return {
-    rooms,
+    rooms: enhancedRooms,
     furniture: assignedFurniture,
     image: roomDetection.image, // Both should have the same image dimensions
     roomTotals: {
@@ -115,6 +146,7 @@ export const combineFloorPlanAnalysis = (
 /**
  * Process room detection with step-by-step animation for UI
  * This version also processes furniture detection after rooms
+ * and enhances room classification
  */
 export async function processWithAnimation(
   file: File
@@ -135,12 +167,38 @@ export async function processWithAnimation(
     // Create a URL for the image preview
     const imageUrl = URL.createObjectURL(file);
 
-    // Process both room and furniture detection
-    const roomDetection = await detectAndClassifyRoomsFromBase64(base64Image);
+    // First detect furniture
     const furnitureDetection = await detectFurnitureFromBase64(base64Image);
     
+    // Then detect rooms
+    const roomDetection = await detectAndClassifyRoomsFromBase64(base64Image);
+    
+    // Assign furniture to rooms
+    const assignedFurniture = assignFurnitureToRooms(
+      furnitureDetection.predictions,
+      roomDetection.predictions
+    );
+    
+    // Update room classification using furniture
+    const enhancedRooms = classifyRoomsByFurniture(
+      roomDetection.predictions,
+      assignedFurniture
+    );
+    
+    // Create enhanced room detection
+    const enhancedRoomDetection: ProcessedRoboflowResponse = {
+      ...roomDetection,
+      predictions: enhancedRooms
+    };
+    
+    // Create enhanced furniture detection
+    const enhancedFurnitureDetection: FurnitureDetectionResponse = {
+      ...furnitureDetection,
+      predictions: assignedFurniture
+    };
+    
     // Calculate total area
-    const totalArea = calculateTotalArea(roomDetection.predictions);
+    const totalArea = calculateTotalArea(enhancedRooms);
 
     // Return the combined results
     return {
@@ -150,11 +208,34 @@ export async function processWithAnimation(
       fileName: file.name,
       imageUrl,
       status: 'completed',
-      roomDetection,
-      furnitureDetection,
+      roomDetection: enhancedRoomDetection,
+      furnitureDetection: enhancedFurnitureDetection,
     };
   } catch (error) {
     console.error("Error processing floor plan with animation:", error);
     throw new Error("Failed to process floor plan");
   }
 }
+
+/**
+ * Process a floor plan image to generate construction cost estimation
+ * using the enhanced room classification
+ */
+export const processFloorPlanForCost = async (
+  file: File
+): Promise<any> => { // Return type should be EstimationResult but keeping it simple for this implementation
+  try {
+    // First process the floor plan normally to get room and furniture detection
+    const analysis = await processFloorPlan(file);
+    
+    // You can extend this function to generate cost estimates based on the enhanced room classification
+    // This is just a placeholder for now
+    return {
+      ...analysis,
+      // Add cost estimation properties here
+    };
+  } catch (error) {
+    console.error("Error processing floor plan for cost estimation:", error);
+    throw new Error("Failed to process floor plan for cost estimation");
+  }
+};

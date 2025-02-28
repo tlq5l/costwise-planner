@@ -41,32 +41,53 @@ export const FURNITURE_COLORS: Record<FurnitureType, string> = {
 };
 
 /**
- * Map Roboflow class to FurnitureType
+	* Map Roboflow class to FurnitureType with improved recognition
  */
 function mapToFurnitureType(className: string): FurnitureType {
 	const lowerClassName = className.toLowerCase().trim();
 
+	// Door recognition
 	if (lowerClassName.includes("door")) return FurnitureType.DOOR;
+	
+	// Window recognition
 	if (lowerClassName.includes("window")) return FurnitureType.WINDOW;
-	if (lowerClassName.includes("table")) return FurnitureType.TABLE;
+	
+	// Table recognition
+	if (lowerClassName.includes("table") || lowerClassName.includes("desk")) return FurnitureType.TABLE;
+	if (lowerClassName.includes("dining_table")) return FurnitureType.TABLE;
+	
+	// Chair recognition
 	if (lowerClassName.includes("chair")) return FurnitureType.CHAIR;
-	if (lowerClassName.includes("sofa") || lowerClassName.includes("couch"))
-		return FurnitureType.SOFA;
+	
+	// Sofa recognition
+	if (lowerClassName.includes("sofa") || lowerClassName.includes("couch")) return FurnitureType.SOFA;
+	if (lowerClassName.includes("outside_sitting")) return FurnitureType.SOFA;
+	
+	// Bed recognition
 	if (lowerClassName.includes("bed")) return FurnitureType.BED;
-	if (lowerClassName.includes("sink")) return FurnitureType.SINK;
-	if (lowerClassName.includes("toilet") || lowerClassName.includes("wc"))
-		return FurnitureType.TOILET;
-	if (lowerClassName.includes("bathtub") || lowerClassName.includes("shower"))
-		return FurnitureType.BATHTUB;
-	if (lowerClassName.includes("stove") || lowerClassName.includes("oven"))
-		return FurnitureType.STOVE;
-	if (
-		lowerClassName.includes("refrigerator") ||
-		lowerClassName.includes("fridge")
-	)
-		return FurnitureType.REFRIGERATOR;
-	if (lowerClassName.includes("cabinet")) return FurnitureType.CABINET;
+	
+	// Sink recognition
+	if (lowerClassName.includes("sink") || lowerClassName.includes("washroom_sink")) return FurnitureType.SINK;
+	
+	// Toilet recognition
+	if (lowerClassName.includes("toilet") || lowerClassName.includes("wc") || lowerClassName.includes("washroom_seat")) return FurnitureType.TOILET;
+	
+	// Bathtub recognition
+	if (lowerClassName.includes("bathtub") || lowerClassName.includes("shower")) return FurnitureType.BATHTUB;
+	
+	// Stove recognition
+	if (lowerClassName.includes("stove") || lowerClassName.includes("oven")) return FurnitureType.STOVE;
+	
+	// Refrigerator recognition
+	if (lowerClassName.includes("refrigerator") || lowerClassName.includes("fridge")) return FurnitureType.REFRIGERATOR;
+	
+	// Cabinet recognition
+	if (lowerClassName.includes("cabinet") || lowerClassName.includes("wardrobe") || lowerClassName.includes("tv_cabinet")) return FurnitureType.CABINET;
+	
+	// Counter recognition
 	if (lowerClassName.includes("counter")) return FurnitureType.COUNTER;
+	
+	// Stairs recognition
 	if (lowerClassName.includes("stair")) return FurnitureType.STAIRS;
 
 	return FurnitureType.OTHER;
@@ -202,7 +223,7 @@ export async function detectFurnitureWithAnimation(
 }
 
 /**
- * Determine which room contains a furniture item
+	* Determine which room contains a furniture item with improved accuracy
  */
 export function assignFurnitureToRooms(
 	furniture: FurnitureItem[],
@@ -218,6 +239,44 @@ export function assignFurnitureToRooms(
 			// Check if the point is inside the room polygon
 			return isPointInPolygon(centerX, centerY, room.points);
 		});
+
+		// Fall back to checking if majority of the furniture is in a room
+		// if the center point isn't in any room
+		if (!containingRoom) {
+			// Check corners of the furniture bounding box
+			const corners = [
+				{ x: item.x - item.width / 2, y: item.y - item.height / 2 }, // Top-left
+				{ x: item.x + item.width / 2, y: item.y - item.height / 2 }, // Top-right
+				{ x: item.x - item.width / 2, y: item.y + item.height / 2 }, // Bottom-left
+				{ x: item.x + item.width / 2, y: item.y + item.height / 2 }, // Bottom-right
+			];
+			
+			// Count how many corners are in each room
+			const roomCounts: Record<string, number> = {};
+			let maxCount = 0;
+			let bestRoom: ClassifiedRoom | null = null;
+			
+			for (const corner of corners) {
+				for (const room of rooms) {
+					if (isPointInPolygon(corner.x, corner.y, room.points)) {
+						roomCounts[room.detection_id] = (roomCounts[room.detection_id] || 0) + 1;
+						
+						if (roomCounts[room.detection_id] > maxCount) {
+							maxCount = roomCounts[room.detection_id];
+							bestRoom = room;
+						}
+					}
+				}
+			}
+			
+			// If at least 2 corners are in a room, assign it to that room
+			if (maxCount >= 2 && bestRoom) {
+				return {
+					...item,
+					room: bestRoom.detection_id,
+				};
+			}
+		}
 
 		return {
 			...item,
