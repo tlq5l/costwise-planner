@@ -1,9 +1,11 @@
 import { toast } from "@/hooks/use-toast";
-import type { EstimationResult as EstimationResultType, RoboflowPoint } from "@/types";
+import type { EstimationResult as EstimationResultType, ProcessedRoboflowResponse } from "@/types";
 import { motion } from "framer-motion";
 import { ChevronDown, ChevronUp, Download, Save } from "lucide-react";
 import { useState } from "react";
 import CostBreakdown from "./CostBreakdown";
+import FloorPlanViewer from "./FloorPlanViewer";
+import { classifyRooms } from "@/lib/roomClassifier";
 
 interface EstimationResultProps {
 	result: EstimationResultType;
@@ -25,20 +27,16 @@ const formatCurrency = (value: number, currency: string): string => {
 	}).format(value);
 };
 
-// Convert points to SVG path
-const pointsToPath = (points: RoboflowPoint[]): string => {
-	if (points.length === 0) return '';
-
-	const pathCommands = points.reduce((path, point, index) => {
-		const command = index === 0 ? 'M' : 'L';
-		return `${path} ${command} ${point.x} ${point.y}`;
-	}, '');
-
-	return `${pathCommands} Z`; // Z command closes the path
-};
-
 const EstimationResult = ({ result }: EstimationResultProps) => {
 	const [isExpanded, setIsExpanded] = useState(true);
+	
+	// Process room detection data to include classified rooms if needed
+	const processedRoomDetection: ProcessedRoboflowResponse | undefined = result.roomDetection
+	? {
+			...result.roomDetection,
+			predictions: classifyRooms(result.roomDetection.predictions)
+		}
+	: undefined;
 
 	const handleSave = () => {
 		// Implement save functionality
@@ -168,53 +166,15 @@ const EstimationResult = ({ result }: EstimationResultProps) => {
 						</div>
 
 						<div className="flex flex-col md:flex-row gap-6 mb-6">
-							<div className="w-full md:w-1/2">
-								<div className="aspect-[4/3] bg-gray-100 rounded-lg overflow-hidden dark:bg-gray-700">
-									{result.imageUrl && (
-										<div className="relative w-full h-full">
-											<img
-												src={result.imageUrl}
-												alt="Floor plan visualization"
-												className="w-full h-full object-contain"
-											/>
-											{result.roomDetection?.predictions.map((pred) => (
-												<div
-													key={pred.detection_id}
-													className="absolute inset-0"
-												>
-													<svg
-														width="100%"
-														height="100%"
-														viewBox={`0 0 ${result.roomDetection?.image.width || 1000} ${result.roomDetection?.image.height || 1000}`}
-														preserveAspectRatio="none"
-														style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none' }}
-														role="img"
-														aria-label="Room detection overlay"
-													>
-														<path
-															d={pointsToPath(pred.points)}
-															fill="rgba(178, 245, 234, 0.4)"
-															stroke="rgb(129, 230, 217)"
-															strokeWidth="1"
-														/>
-														<text
-															x={pred.x}
-															y={pred.y}
-															textAnchor="middle"
-															dominantBaseline="middle"
-															fill="rgb(14, 116, 144)"
-															fontSize="12"
-															fontWeight="500"
-															className="select-none"
-														>
-															{pred.class} ({Math.round(pred.confidence * 100)}%)
-														</text>
-													</svg>
-												</div>
-											))}
-										</div>
-									)}
-								</div>
+							<div className="w-full md:w-1/2 aspect-[4/3] bg-gray-100 rounded-lg overflow-hidden dark:bg-gray-700">
+								{result.imageUrl && processedRoomDetection && (
+									<div className="relative w-full h-full">
+										<FloorPlanViewer
+											imageUrl={result.imageUrl}
+											roomDetection={processedRoomDetection}
+										/>
+									</div>
+								)}
 							</div>
 
 							<div className="w-full md:w-1/2 flex flex-col">

@@ -1,23 +1,6 @@
-import type { RoboflowPoint } from '@/types';
+import type { RoboflowPoint, RoboflowResponse, ProcessedRoboflowResponse, ClassifiedRoom } from '@/types';
+import { classifyRooms } from './roomClassifier';
 import axios from 'axios';
-
-export interface RoomDetectionResult {
-    predictions: Array<{
-        x: number;
-        y: number;
-        width: number;
-        height: number;
-        confidence: number;
-        class: string;
-        points: RoboflowPoint[];
-        class_id: number;
-        detection_id: string;
-    }>;
-    image: {
-        width: number;
-        height: number;
-    };
-}
 
 const API_KEY = "oru2Kv8shKMEebi3jNUk";
 const MODEL_ENDPOINT = "https://outline.roboflow.com/room-detection-6nzte/1";
@@ -53,7 +36,7 @@ function transformPrediction(prediction: RawPrediction, index: number) {
 /**
  * Detect rooms in an image using base64 encoded image data
  */
-export async function detectRoomsFromBase64(imageBase64: string): Promise<RoomDetectionResult> {
+export async function detectRoomsFromBase64(imageBase64: string): Promise<RoboflowResponse> {
     try {
         const response = await axios({
             method: "POST",
@@ -85,9 +68,65 @@ export async function detectRoomsFromBase64(imageBase64: string): Promise<RoomDe
 }
 
 /**
+ * Enhanced room detection that includes classification
+ */
+export async function detectAndClassifyRoomsFromBase64(imageBase64: string): Promise<ProcessedRoboflowResponse> {
+    try {
+        const detection = await detectRoomsFromBase64(imageBase64);
+        
+        // Classify the rooms based on dimensions
+        const classifiedRooms = classifyRooms(detection.predictions);
+        
+        return {
+            ...detection,
+            predictions: classifiedRooms
+        };
+    } catch (error) {
+        if (error instanceof Error) {
+            throw new Error(`Failed to classify rooms: ${error.message}`);
+        }
+        throw error;
+    }
+}
+
+/**
+ * Process room detection in stages for animation
+ * Returns a function that yields rooms one by one for animation
+ */
+export async function detectRoomsWithAnimation(imageBase64: string): Promise<{
+    fullResponse: ProcessedRoboflowResponse,
+    getNextRoom: () => ClassifiedRoom | null,
+    remainingCount: () => number
+}> {
+    // Get the full response first
+    const fullResponse = await detectAndClassifyRoomsFromBase64(imageBase64);
+    const rooms = [...fullResponse.predictions];
+    let index = 0;
+    
+    // Function to get the next room one at a time
+    const getNextRoom = (): ClassifiedRoom | null => {
+        if (index < rooms.length) {
+            return rooms[index++];
+        }
+        return null;
+    };
+    
+    // Function to get count of remaining rooms
+    const remainingCount = (): number => {
+        return rooms.length - index;
+    };
+    
+    return {
+        fullResponse,
+        getNextRoom,
+        remainingCount
+    };
+}
+
+/**
  * Detect rooms in an image using a URL
  */
-export async function detectRoomsFromUrl(imageUrl: string): Promise<RoomDetectionResult> {
+export async function detectRoomsFromUrl(imageUrl: string): Promise<RoboflowResponse> {
     try {
         const response = await axios({
             method: "POST",

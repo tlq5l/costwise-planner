@@ -1,8 +1,5 @@
-import type { EstimationCategory, EstimationResult } from "@/types";
-import { detectRoomsFromBase64 } from "./roboflow";
-
-// Mock implementation for Gemini AI integration
-// In a real application, this would connect to the Google Generative AI API
+import type { EstimationCategory, EstimationResult, ProcessedRoboflowResponse } from "@/types";
+import { detectAndClassifyRoomsFromBase64 } from "./roboflow";
 
 // Generate a unique ID
 const generateId = (): string => {
@@ -71,12 +68,13 @@ const constructionCategories: Omit<EstimationCategory, "id">[] = [
 // Generate costs based on room detection results
 const generateCosts = async (
 	imageBase64: string,
+	roomDetection?: ProcessedRoboflowResponse
 ): Promise<EstimationCategory[]> => {
-	// Get room detection results from Roboflow
-	const roomDetection = await detectRoomsFromBase64(imageBase64);
+	// Get room detection results from Roboflow if not provided
+	const detection = roomDetection || await detectAndClassifyRoomsFromBase64(imageBase64);
 
 	// Calculate total area based on detected rooms
-	const totalArea = roomDetection.predictions.reduce((sum, room) => {
+	const totalArea = detection.predictions.reduce((sum, room) => {
 		return sum + room.width * room.height;
 	}, 0);
 
@@ -138,16 +136,16 @@ export const processFloorPlan = async (
 		// Create a URL for the image preview
 		const imageUrl = URL.createObjectURL(file);
 
-		// Get room detection results
-		const roomDetection = await detectRoomsFromBase64(base64Image);
+		// Get room detection and classification results
+		const roomDetection = await detectAndClassifyRoomsFromBase64(base64Image);
 
 		// Calculate total area
 		const estimatedArea = roomDetection.predictions.reduce((sum, room) => {
-			return sum + (room.width * room.height);
+			return sum + (room.dimensions.areaFt);
 		}, 0);
 
 		// Generate cost categories based on room detection
-		const categories = await generateCosts(base64Image);
+		const categories = await generateCosts(base64Image, roomDetection);
 
 		// Calculate total
 		const totalCost = categories.reduce((sum, category) => sum + category.cost, 0);

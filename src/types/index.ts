@@ -28,11 +28,26 @@ export interface Project {
   updatedAt: Date;
 }
 
-export type UploadStatus = 'idle' | 'uploading' | 'processing' | 'success' | 'error';
+export type UploadStatus = 'idle' | 'uploading' | 'processing' | 'roomDetection' | 'success' | 'error';
 
 export interface RoboflowPoint {
   x: number;
   y: number;
+}
+
+export enum RoomType {
+  UNKNOWN = "unknown",
+  BEDROOM = "bedroom",
+  BATHROOM = "bathroom",
+  KITCHEN = "kitchen",
+  LIVING_ROOM = "living room",
+  DINING_ROOM = "dining room",
+  HALLWAY = "hallway",
+  CLOSET = "closet",
+  LAUNDRY = "laundry",
+  GARAGE = "garage",
+  OFFICE = "office",
+  OTHER = "other"
 }
 
 export interface RoboflowPrediction {
@@ -47,10 +62,30 @@ export interface RoboflowPrediction {
   detection_id: string;
 }
 
+export interface ClassifiedRoom extends RoboflowPrediction {
+  roomType: RoomType;
+  color: string;
+  dimensions: {
+    width: number;
+    height: number;
+    widthFt: number;
+    heightFt: number;
+    area: number;
+    areaFt: number;
+  };
+  isVisible?: boolean;
+  isHighlighted?: boolean;
+  isProcessing?: boolean;
+}
+
 export interface RoboflowResponse {
   predictions: RoboflowPrediction[];
   image: {
     width: number;
     height: number;
   };
+}
+
+export interface ProcessedRoboflowResponse extends Omit<RoboflowResponse, 'predictions'> {
+  predictions: ClassifiedRoom[];
 }
