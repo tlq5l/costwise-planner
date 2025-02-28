@@ -1,19 +1,17 @@
 import type {
-  ClassifiedRoom,
-  ProcessedRoboflowResponse,
-  RoomAnalysisResult,
+  CombinedFloorPlanAnalysis,
   FurnitureDetectionResponse,
-  FurnitureItem,
-  CombinedFloorPlanAnalysis
+  ProcessedRoboflowResponse,
+  RoomAnalysisResult
 } from "@/types";
+import {
+  assignFurnitureToRooms,
+  countFurnitureByRoom,
+  countFurnitureByType,
+  detectFurnitureFromBase64
+} from "./furnitureDetection";
 import { detectAndClassifyRoomsFromBase64 } from "./roboflow";
 import { calculateTotalArea, classifyRoomsByFurniture } from "./roomClassifier";
-import {
-  detectFurnitureFromBase64,
-  assignFurnitureToRooms,
-  countFurnitureByType,
-  countFurnitureByRoom
-} from "./furnitureDetection";
 
 // Generate a unique ID
 const generateId = (): string => {
@@ -51,30 +49,34 @@ export const processFloorPlan = async (
     // Create a URL for the image preview
     const imageUrl = URL.createObjectURL(file);
 
-    // First detect furniture - the semantic clues that will help us classify rooms
+    // STEP 1: First detect furniture - this provides semantic clues for room classification
+    // The furniture items will help us determine the function of each room
     const furnitureDetection = await detectFurnitureFromBase64(base64Image);
-    
-    // Then detect and classify rooms
+
+    // STEP 2: Then detect and initially classify rooms based on size and shape
+    // This gives us the room boundaries but classification may still be preliminary
     const roomDetection = await detectAndClassifyRoomsFromBase64(base64Image);
-    
-    // Assign furniture to rooms
+
+    // STEP 3: Assign furniture to rooms based on spatial relationships
+    // This connects furniture items to their containing rooms
     const assignedFurniture = assignFurnitureToRooms(
       furnitureDetection.predictions,
       roomDetection.predictions
     );
-    
-    // Update room classification based on furniture
+
+    // STEP 4: Update room classification based on furniture
+    // This is where we enhance the initial classification with semantic information from furniture
     const enhancedRooms = classifyRoomsByFurniture(
       roomDetection.predictions,
       assignedFurniture
     );
-    
+
     // Create enhanced room detection object
     const enhancedRoomDetection: ProcessedRoboflowResponse = {
       ...roomDetection,
       predictions: enhancedRooms
     };
-    
+
     // Create enhanced furniture detection object
     const enhancedFurnitureDetection: FurnitureDetectionResponse = {
       ...furnitureDetection,
@@ -111,25 +113,25 @@ export const combineFloorPlanAnalysis = (
   // Get the rooms and furniture
   const rooms = roomDetection.predictions;
   const furniture = furnitureDetection.predictions;
-  
+
   // Assign furniture to rooms if not already done
   const assignedFurniture = furniture.some(item => item.room)
     ? furniture
     : assignFurnitureToRooms(furniture, rooms);
-  
+
   // Enhance room classification with furniture data
   const enhancedRooms = classifyRoomsByFurniture(rooms, assignedFurniture);
-  
+
   // Calculate room totals
   const totalArea = calculateTotalArea(enhancedRooms);
   const roomCount = enhancedRooms.length;
-  
+
   // Count furniture by type
   const furnitureTotals = countFurnitureByType(assignedFurniture);
-  
+
   // Count furniture by room
   const roomFurnitureCounts = countFurnitureByRoom(assignedFurniture);
-  
+
   return {
     rooms: enhancedRooms,
     furniture: assignedFurniture,
@@ -169,34 +171,34 @@ export async function processWithAnimation(
 
     // First detect furniture
     const furnitureDetection = await detectFurnitureFromBase64(base64Image);
-    
+
     // Then detect rooms
     const roomDetection = await detectAndClassifyRoomsFromBase64(base64Image);
-    
+
     // Assign furniture to rooms
     const assignedFurniture = assignFurnitureToRooms(
       furnitureDetection.predictions,
       roomDetection.predictions
     );
-    
+
     // Update room classification using furniture
     const enhancedRooms = classifyRoomsByFurniture(
       roomDetection.predictions,
       assignedFurniture
     );
-    
+
     // Create enhanced room detection
     const enhancedRoomDetection: ProcessedRoboflowResponse = {
       ...roomDetection,
       predictions: enhancedRooms
     };
-    
+
     // Create enhanced furniture detection
     const enhancedFurnitureDetection: FurnitureDetectionResponse = {
       ...furnitureDetection,
       predictions: assignedFurniture
     };
-    
+
     // Calculate total area
     const totalArea = calculateTotalArea(enhancedRooms);
 
@@ -223,11 +225,11 @@ export async function processWithAnimation(
  */
 export const processFloorPlanForCost = async (
   file: File
-): Promise<any> => { // Return type should be EstimationResult but keeping it simple for this implementation
+): Promise<RoomAnalysisResult> => {
   try {
     // First process the floor plan normally to get room and furniture detection
     const analysis = await processFloorPlan(file);
-    
+
     // You can extend this function to generate cost estimates based on the enhanced room classification
     // This is just a placeholder for now
     return {
