@@ -1,18 +1,19 @@
 import { toast } from "@/hooks/use-toast";
-import { classifyRooms } from "@/lib/roomClassifier";
 import { combineFloorPlanAnalysis } from "@/lib/roomAnalysis";
+import { classifyRooms } from "@/lib/roomClassifier";
 import type {
-  RoomAnalysisResult as RoomAnalysisResultType,
-  ProcessedRoboflowResponse,
-  FurnitureType,
+  CombinedFloorPlanAnalysis,
   FurnitureDetectionResponse,
-  CombinedFloorPlanAnalysis
+  FurnitureItem,
+  FurnitureType,
+  ProcessedRoboflowResponse,
+  RoomAnalysisResult as RoomAnalysisResultType
 } from "@/types";
 import { motion } from "framer-motion";
-import { ChevronDown, ChevronUp, Download, Save, Home, Sofa } from "lucide-react";
-import { useState, useEffect } from "react";
-import RoomAreaBreakdown from "./RoomAreaBreakdown";
+import { ChevronDown, ChevronUp, Download, Home, Save, Sofa } from "lucide-react";
+import { useEffect, useState } from "react";
 import FloorPlanViewer from "./FloorPlanViewer";
+import RoomAreaBreakdown from "./RoomAreaBreakdown";
 
 interface RoomAnalysisResultProps {
   result: RoomAnalysisResultType;
@@ -38,10 +39,10 @@ const RoomAnalysisResult = ({ result }: RoomAnalysisResultProps) => {
         predictions: classifyRooms(result.roomDetection.predictions)
       }
     : undefined;
-    
+
   // Get the furniture detection
   const furnitureDetection: FurnitureDetectionResponse | undefined = result.furnitureDetection;
-  
+
   // Combine room and furniture detection for analysis
   useEffect(() => {
     if (processedRoomDetection && furnitureDetection) {
@@ -80,11 +81,11 @@ const RoomAnalysisResult = ({ result }: RoomAnalysisResultProps) => {
       .map(([room, count]) => `${count} ${room}${count > 1 ? 's' : ''}`)
       .join(', ');
   };
-  
+
   // Format furniture detection results for display
   const formatFurnitureDetection = () => {
     if (!furnitureDetection || !combinedAnalysis) return "";
-    
+
     return Object.entries(combinedAnalysis.furnitureTotals)
       .filter(([_, count]) => count > 0)
       .map(([type, count]) => `${count} ${type}${count > 1 ? 's' : ''}`)
@@ -163,7 +164,7 @@ const RoomAnalysisResult = ({ result }: RoomAnalysisResultProps) => {
                   Total floor area
                 </div>
               </div>
-              
+
               {combinedAnalysis && (
                 <div className="flex space-x-6">
                   <div>
@@ -174,7 +175,7 @@ const RoomAnalysisResult = ({ result }: RoomAnalysisResultProps) => {
                       {combinedAnalysis.roomTotals.roomCount}
                     </div>
                   </div>
-                  
+
                   <div>
                     <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">
                       Furniture Items
@@ -190,6 +191,7 @@ const RoomAnalysisResult = ({ result }: RoomAnalysisResultProps) => {
             {/* Tabs for Room/Furniture */}
             <div className="flex space-x-2 mb-6">
               <button
+                type="button"
                 onClick={() => setActiveTab('rooms')}
                 className={`px-4 py-2 rounded-lg flex items-center ${
                   activeTab === 'rooms'
@@ -200,9 +202,10 @@ const RoomAnalysisResult = ({ result }: RoomAnalysisResultProps) => {
                 <Home className="w-4 h-4 mr-2" />
                 Rooms
               </button>
-              
+
               {furnitureDetection && (
                 <button
+                  type="button"
                   onClick={() => setActiveTab('furniture')}
                   className={`px-4 py-2 rounded-lg flex items-center ${
                     activeTab === 'furniture'
@@ -215,7 +218,7 @@ const RoomAnalysisResult = ({ result }: RoomAnalysisResultProps) => {
                 </button>
               )}
             </div>
-            
+
             <div className="flex flex-col md:flex-row gap-6 mb-6">
               <div className="w-full md:w-1/2 bg-gray-100 rounded-lg overflow-hidden dark:bg-gray-700" style={{ minHeight: '500px', height: 'auto' }}>
                 {result.imageUrl && processedRoomDetection && (
@@ -252,7 +255,7 @@ const RoomAnalysisResult = ({ result }: RoomAnalysisResultProps) => {
                     This information can be useful for planning furniture layouts,
                     flooring materials, paint quantities, and HVAC requirements.
                   </p>
-                  
+
                   {combinedAnalysis && (
                     <div className="mt-4">
                       <h4 className="font-medium mb-2">Details by Room Type:</h4>
@@ -260,14 +263,14 @@ const RoomAnalysisResult = ({ result }: RoomAnalysisResultProps) => {
                         {Object.entries(combinedAnalysis.roomFurnitureCounts).map(([roomId, furnitureCounts]) => {
                           const room = combinedAnalysis.rooms.find(r => r.detection_id === roomId);
                           if (!room) return null;
-                          
+
                           // Get furniture items in this room
                           const furnitureItems = Object.entries(furnitureCounts)
                             .filter(([_, count]) => count > 0)
                             .map(([type, count]) => `${count} ${type}${count > 1 ? 's' : ''}`);
-                          
+
                           if (furnitureItems.length === 0) return null;
-                          
+
                           return (
                             <li key={roomId} className="py-1">
                               <span className="font-medium capitalize">{room.roomType}</span>: {furnitureItems.join(', ')}
@@ -292,7 +295,7 @@ const RoomAnalysisResult = ({ result }: RoomAnalysisResultProps) => {
               totalArea={result.totalArea}
             />
           )}
-          
+
           {activeTab === 'furniture' && furnitureDetection && (
             <FurnitureBreakdown
               furniture={furnitureDetection.predictions}
@@ -314,14 +317,14 @@ interface FurnitureBreakdownProps {
 const FurnitureBreakdown = ({ furniture, roomTotalArea }: FurnitureBreakdownProps) => {
   // Group furniture by type
   const groupedFurniture: Record<FurnitureType, FurnitureItem[]> = {} as Record<FurnitureType, FurnitureItem[]>;
-  
-  furniture.forEach(item => {
+
+  for (const item of furniture) {
     if (!groupedFurniture[item.furnitureType]) {
       groupedFurniture[item.furnitureType] = [];
     }
     groupedFurniture[item.furnitureType].push(item);
-  });
-  
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -331,7 +334,7 @@ const FurnitureBreakdown = ({ furniture, roomTotalArea }: FurnitureBreakdownProp
     >
       <div className="p-6 md:p-8">
         <h3 className="text-xl font-medium mb-6">Furniture & Fixtures Breakdown</h3>
-        
+
         <div className="space-y-6">
           {Object.entries(groupedFurniture).map(([type, items]) => (
             <div key={type} className="border-b border-gray-100 dark:border-gray-700 pb-4 last:border-b-0">
@@ -350,7 +353,7 @@ const FurnitureBreakdown = ({ furniture, roomTotalArea }: FurnitureBreakdownProp
                   {items.length} {items.length === 1 ? 'item' : 'items'}
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {items.map(item => (
                   <div

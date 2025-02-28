@@ -1,29 +1,27 @@
-import { ROOM_COLORS, formatDimension } from "@/lib/roomClassifier";
 import { FURNITURE_COLORS } from "@/lib/furnitureDetection";
+import { ROOM_COLORS, formatDimension } from "@/lib/roomClassifier";
 import type {
-  ClassifiedRoom,
-  ProcessedRoboflowResponse,
-  RoboflowPoint,
-  FurnitureItem,
-  FurnitureDetectionResponse
+    ClassifiedRoom,
+    FurnitureDetectionResponse,
+    FurnitureItem,
+    ProcessedRoboflowResponse,
+    RoboflowPoint
 } from "@/types";
 import { motion } from "framer-motion";
 import {
-  Eye,
-  EyeOff,
-  Layers,
-  RotateCcw,
-  Ruler,
-  ZoomIn,
-  ZoomOut,
-  Home,
-  Sofa
+    Home,
+    Layers,
+    RotateCcw,
+    Ruler,
+    Sofa,
+    ZoomIn,
+    ZoomOut
 } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 import {
-  type ReactZoomPanPinchRef,
-  TransformComponent,
-  TransformWrapper
+    type ReactZoomPanPinchRef,
+    TransformComponent,
+    TransformWrapper
 } from "react-zoom-pan-pinch";
 
 interface FloorPlanViewerProps {
@@ -49,7 +47,7 @@ const FloorPlanViewer = ({
       isProcessing: isAnimating
     }))
   );
-  
+
   const [furniture, setFurniture] = useState<FurnitureItem[]>(
     furnitureDetection ? furnitureDetection.predictions.map(item => ({
       ...item,
@@ -57,13 +55,13 @@ const FloorPlanViewer = ({
       isHighlighted: false
     })) : []
   );
-  
+
   const [showLabels, setShowLabels] = useState(true);
   const [showDimensions, setShowDimensions] = useState(true);
   const [showAllRooms, setShowAllRooms] = useState(true);
   const [showAllFurniture, setShowAllFurniture] = useState(true);
   const [activeTab, setActiveTab] = useState<'rooms' | 'furniture'>('rooms');
-  
+
   const transformComponentRef = useRef<ReactZoomPanPinchRef | null>(null);
 
   // For animation of room detection
@@ -102,7 +100,7 @@ const FloorPlanViewer = ({
       )
     );
   };
-  
+
   // Toggle furniture visibility
   const toggleFurnitureVisibility = (furnitureId: string) => {
     setFurniture(prevFurniture =>
@@ -113,7 +111,7 @@ const FloorPlanViewer = ({
       )
     );
   };
-  
+
   // Toggle highlight for a specific furniture item
   const toggleFurnitureHighlight = (furnitureId: string) => {
     setFurniture(prevFurniture =>
@@ -162,7 +160,7 @@ const FloorPlanViewer = ({
       prevRooms.map(room => ({ ...room, isVisible: !showAllRooms }))
     );
   };
-  
+
   // Toggle all furniture visibility
   const toggleAllFurniture = () => {
     setShowAllFurniture(!showAllFurniture);
@@ -231,11 +229,10 @@ const FloorPlanViewer = ({
         </button>
 
         <div className="border-t border-gray-200 dark:border-gray-700 pt-2" />
-        
+
         {/* Room visibility toggle */}
         <button
           type="button"
-          onClick={toggleAllRooms}
           className={`w-8 h-8 flex items-center justify-center rounded ${
             activeTab === 'rooms' ? 'bg-indigo-100 dark:bg-indigo-900' : 'hover:bg-gray-100 dark:hover:bg-gray-800'
           }`}
@@ -250,12 +247,11 @@ const FloorPlanViewer = ({
             activeTab === 'rooms' ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-700 dark:text-gray-300'
           }`} />
         </button>
-        
+
         {/* Furniture visibility toggle */}
         {furniture.length > 0 && (
           <button
             type="button"
-            onClick={toggleAllFurniture}
             className={`w-8 h-8 flex items-center justify-center rounded ${
               activeTab === 'furniture' ? 'bg-amber-100 dark:bg-amber-900' : 'hover:bg-gray-100 dark:hover:bg-gray-800'
             }`}
@@ -277,6 +273,7 @@ const FloorPlanViewer = ({
       <div className="absolute top-4 right-4 z-20 bg-white dark:bg-gray-900 rounded-lg shadow-md p-3 max-w-xs">
         <div className="flex mb-2 space-x-2">
           <button
+            type="button"
             onClick={() => setActiveTab('rooms')}
             className={`px-3 py-1 text-xs rounded-md ${
               activeTab === 'rooms'
@@ -286,9 +283,10 @@ const FloorPlanViewer = ({
           >
             Rooms
           </button>
-          
+
           {furniture.length > 0 && (
             <button
+              type="button"
               onClick={() => setActiveTab('furniture')}
               className={`px-3 py-1 text-xs rounded-md ${
                 activeTab === 'furniture'
@@ -300,7 +298,7 @@ const FloorPlanViewer = ({
             </button>
           )}
         </div>
-        
+
         {activeTab === 'rooms' ? (
           <div className="space-y-1.5 max-h-60 overflow-y-auto">
             {Object.entries(ROOM_COLORS).map(([roomType, color]) => (
@@ -363,7 +361,7 @@ const FloorPlanViewer = ({
                   aria-label="Floor plan detection overlay"
                 >
                   <title>Floor plan detection visualization</title>
-                  
+
                   {/* Room polygons */}
                   {rooms.map((room) =>
                     room.isVisible && (
@@ -501,7 +499,7 @@ const FloorPlanViewer = ({
                       </motion.g>
                     )
                   )}
-                  
+
                   {/* Furniture bounding boxes */}
                   {furniture.map((item) =>
                     item.isVisible && (
@@ -537,7 +535,7 @@ const FloorPlanViewer = ({
                           }}
                           whileHover={{ scale: 1.01 }}
                         />
-                        
+
                         {/* Furniture icon */}
                         {showLabels && (
                           <g>
@@ -581,6 +579,7 @@ const FloorPlanViewer = ({
         <div className="flex justify-between items-center mb-2">
           <div className="flex space-x-2">
             <button
+              type="button"
               onClick={() => setActiveTab('rooms')}
               className={`px-3 py-1 text-xs font-medium rounded-md ${
                 activeTab === 'rooms'
@@ -590,9 +589,10 @@ const FloorPlanViewer = ({
             >
               Rooms ({rooms.length})
             </button>
-            
+
             {furniture.length > 0 && (
               <button
+                type="button"
                 onClick={() => setActiveTab('furniture')}
                 className={`px-3 py-1 text-xs font-medium rounded-md ${
                   activeTab === 'furniture'
@@ -604,8 +604,9 @@ const FloorPlanViewer = ({
               </button>
             )}
           </div>
-          
+
           <button
+            type="button"
             onClick={() => activeTab === 'rooms' ? toggleAllRooms() : toggleAllFurniture()}
             className="px-3 py-1 text-xs rounded-md bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300"
           >
@@ -614,7 +615,7 @@ const FloorPlanViewer = ({
               : (showAllFurniture ? "Hide All" : "Show All")}
           </button>
         </div>
-        
+
         <div className="max-h-40 overflow-y-auto">
           {activeTab === 'rooms' ? (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
