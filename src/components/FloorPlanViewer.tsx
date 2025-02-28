@@ -2,19 +2,19 @@ import { ROOM_COLORS, formatDimension } from "@/lib/roomClassifier";
 import type { ClassifiedRoom, ProcessedRoboflowResponse } from "@/types";
 import { motion } from "framer-motion";
 import {
-    Eye,
-    EyeOff,
-    Layers,
-    RotateCcw,
-    Ruler,
-    ZoomIn,
-    ZoomOut
+  Eye,
+  EyeOff,
+  Layers,
+  RotateCcw,
+  Ruler,
+  ZoomIn,
+  ZoomOut
 } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 import {
-    type ReactZoomPanPinchRef,
-    TransformComponent,
-    TransformWrapper
+  type ReactZoomPanPinchRef,
+  TransformComponent,
+  TransformWrapper
 } from "react-zoom-pan-pinch";
 
 interface FloorPlanViewerProps {
@@ -107,7 +107,10 @@ const FloorPlanViewer = ({
       }, 500);
 
       return () => clearTimeout(timer);
-    } else if (isAnimating && animationIndex >= rooms.length) {
+    }
+
+    // If animation is complete, call the callback
+    if (isAnimating && animationIndex >= rooms.length) {
       onAnimationComplete?.();
     }
   }, [isAnimating, animationIndex, rooms.length, onAnimationComplete]);
@@ -243,6 +246,7 @@ const FloorPlanViewer = ({
                   role="img"
                   aria-label="Room detection overlay"
                 >
+                  <title>Floor plan room detection visualization</title>
                   {rooms.map((room) =>
                     room.isVisible && (
                       <motion.g
@@ -256,12 +260,24 @@ const FloorPlanViewer = ({
                         onClick={() => toggleRoomHighlight(room.detection_id)}
                       >
                         {/* Room outline */}
-                        <path
+                        <motion.path
                           d={pointsToPath(room.points)}
                           fill={room.isHighlighted ? `${room.color}99` : `${room.color}66`}
                           stroke={room.color}
                           strokeWidth={room.isHighlighted ? "2" : "1.5"}
                           className="cursor-pointer transition-colors duration-300"
+                          initial={{ pathLength: 0, opacity: 0 }}
+                          animate={{
+                            pathLength: 1,
+                            opacity: room.isProcessing ? 0.3 : 0.8,
+                            strokeWidth: room.isHighlighted ? 2 : 1.5
+                          }}
+                          transition={{
+                            pathLength: { duration: 1, delay: 0.2 },
+                            opacity: { duration: 0.5 },
+                            strokeWidth: { duration: 0.2 }
+                          }}
+                          whileHover={{ scale: 1.01 }}
                         />
 
                         {/* Room label */}
@@ -379,7 +395,8 @@ const FloorPlanViewer = ({
         <h4 className="text-sm font-medium mb-2">Detected Rooms</h4>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
           {rooms.map((room) => (
-            <div
+            <button
+              type="button"
               key={room.detection_id}
               className={`flex items-center p-1.5 text-xs rounded-md border cursor-pointer transition-colors ${
                 room.isVisible
@@ -391,13 +408,6 @@ const FloorPlanViewer = ({
                   : ''
               }`}
               onClick={() => toggleRoomVisibility(room.detection_id)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  toggleRoomVisibility(room.detection_id);
-                }
-              }}
-              role="button"
-              tabIndex={0}
             >
               <div
                 className="w-3 h-3 rounded-full mr-2 flex-shrink-0"
@@ -406,7 +416,7 @@ const FloorPlanViewer = ({
               <span className="truncate capitalize">
                 {room.roomType} ({Math.round(room.dimensions.areaFt)} sq.ft)
               </span>
-            </div>
+            </button>
           ))}
         </div>
       </div>

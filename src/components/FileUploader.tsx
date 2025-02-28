@@ -214,6 +214,7 @@ const FileUploader = ({ onEstimationComplete }: FileUploaderProps) => {
             preserveAspectRatio="none"
             aria-label="Room detection visualization"
           >
+            <title>Floor plan room detection</title>
             {detectedRooms.map((room, index) => {
               // Create SVG path from points
               const pointsToPath = (points: { x: number; y: number }[]): string => {

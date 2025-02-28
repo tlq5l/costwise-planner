@@ -37,6 +37,31 @@ const ASPECT_RATIO = {
 export const PIXELS_TO_FEET = 0.1;
 
 /**
+ * Try to identify a room type from the Roboflow class name
+ */
+export function identifyRoomTypeFromClass(className: string): RoomType {
+  if (!className || typeof className !== 'string') return RoomType.UNKNOWN;
+
+  const lowerClass = className.toLowerCase().trim();
+
+  // Direct matches for common room types
+  if (lowerClass === 'room') return RoomType.UNKNOWN; // Generic room needs further classification
+  if (lowerClass === 'bathroom' || lowerClass.includes('bath') || lowerClass.includes('wc') || lowerClass.includes('toilet')) return RoomType.BATHROOM;
+  if (lowerClass === 'bedroom' || lowerClass.includes('bed')) return RoomType.BEDROOM;
+  if (lowerClass === 'kitchen' || lowerClass.includes('kit')) return RoomType.KITCHEN;
+  if (lowerClass === 'living' || lowerClass.includes('living') || lowerClass === 'lounge') return RoomType.LIVING_ROOM;
+  if (lowerClass === 'dining' || lowerClass.includes('dining')) return RoomType.DINING_ROOM;
+  if (lowerClass === 'hallway' || lowerClass.includes('hall') || lowerClass.includes('corridor') || lowerClass.includes('entrance')) return RoomType.HALLWAY;
+  if (lowerClass === 'closet' || lowerClass.includes('closet') || lowerClass.includes('storage') || lowerClass.includes('wardrobe')) return RoomType.CLOSET;
+  if (lowerClass === 'laundry' || lowerClass.includes('laundry') || lowerClass.includes('utility')) return RoomType.LAUNDRY;
+  if (lowerClass === 'garage' || lowerClass.includes('garage') || lowerClass.includes('parking')) return RoomType.GARAGE;
+  if (lowerClass === 'office' || lowerClass.includes('office') || lowerClass.includes('study')) return RoomType.OFFICE;
+
+  // Default to UNKNOWN if no match found
+  return RoomType.UNKNOWN;
+}
+
+/**
  * Calculates dimensions and classifies a room based on size and aspect ratio
  */
 export function classifyRoom(room: RoboflowPrediction, pixelsToFeet: number = PIXELS_TO_FEET): ClassifiedRoom {
@@ -57,21 +82,10 @@ export function classifyRoom(room: RoboflowPrediction, pixelsToFeet: number = PI
 
   // First try to use existing class information from Roboflow
   if (room.class && room.class !== "") {
-    const lowerClass = room.class.toLowerCase();
-
-    if (lowerClass.includes("bed")) roomType = RoomType.BEDROOM;
-    else if (lowerClass.includes("bath")) roomType = RoomType.BATHROOM;
-    else if (lowerClass.includes("kitchen")) roomType = RoomType.KITCHEN;
-    else if (lowerClass.includes("living")) roomType = RoomType.LIVING_ROOM;
-    else if (lowerClass.includes("dining")) roomType = RoomType.DINING_ROOM;
-    else if (lowerClass.includes("hall")) roomType = RoomType.HALLWAY;
-    else if (lowerClass.includes("closet")) roomType = RoomType.CLOSET;
-    else if (lowerClass.includes("laundry")) roomType = RoomType.LAUNDRY;
-    else if (lowerClass.includes("garage")) roomType = RoomType.GARAGE;
-    else if (lowerClass.includes("office")) roomType = RoomType.OFFICE;
+    roomType = identifyRoomTypeFromClass(room.class);
   }
 
-  // If we couldn't determine from class, use size and aspect ratio
+  // If we still have an unknown room, use size and aspect ratio
   if (roomType === RoomType.UNKNOWN) {
     // Very narrow rooms are likely hallways
     if (aspectRatio < ASPECT_RATIO.NARROW) {
