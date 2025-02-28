@@ -190,6 +190,20 @@ const FileUploader = ({ onAnalysisComplete }: FileUploaderProps) => {
               processFloorPlan(file).then(result => {
                 // Update status and notify parent component
                 setUploadStatus("success");
+
+                // IMPORTANT: Update the UI with the enhanced room and furniture classifications
+                // This ensures we're using the properly enhanced room classifications
+                // Cast to appropriate types to handle type compatibility
+                if (result.roomDetection && 'predictions' in result.roomDetection) {
+                  const enhancedRooms = result.roomDetection.predictions as ClassifiedRoom[];
+                  setDetectedRooms(enhancedRooms);
+                }
+
+                if (result.furnitureDetection && 'predictions' in result.furnitureDetection) {
+                  const enhancedFurniture = result.furnitureDetection.predictions as FurnitureItem[];
+                  setDetectedFurniture(enhancedFurniture);
+                }
+
                 onAnalysisComplete(result);
 
                 toast({
