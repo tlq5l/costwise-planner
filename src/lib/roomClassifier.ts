@@ -1,4 +1,5 @@
-import { RoomType, ClassifiedRoom, RoboflowPrediction } from "@/types";
+import type { ClassifiedRoom, RoboflowPrediction } from "@/types";
+import { RoomType } from "@/types";
 
 // Color mappings for different room types
 export const ROOM_COLORS: Record<RoomType, string> = {
@@ -43,21 +44,21 @@ export function classifyRoom(room: RoboflowPrediction, pixelsToFeet: number = PI
   const width = room.width;
   const height = room.height;
   const area = width * height;
-  
+
   const widthFt = width * pixelsToFeet;
   const heightFt = height * pixelsToFeet;
   const areaFt = widthFt * heightFt;
-  
+
   // Calculate aspect ratio (always <= 1.0, representing narrowness)
   const aspectRatio = Math.min(width / height, height / width);
-  
+
   // Determine room type based on dimensions and current classification
   let roomType = RoomType.UNKNOWN;
-  
+
   // First try to use existing class information from Roboflow
   if (room.class && room.class !== "") {
     const lowerClass = room.class.toLowerCase();
-    
+
     if (lowerClass.includes("bed")) roomType = RoomType.BEDROOM;
     else if (lowerClass.includes("bath")) roomType = RoomType.BATHROOM;
     else if (lowerClass.includes("kitchen")) roomType = RoomType.KITCHEN;
@@ -69,7 +70,7 @@ export function classifyRoom(room: RoboflowPrediction, pixelsToFeet: number = PI
     else if (lowerClass.includes("garage")) roomType = RoomType.GARAGE;
     else if (lowerClass.includes("office")) roomType = RoomType.OFFICE;
   }
-  
+
   // If we couldn't determine from class, use size and aspect ratio
   if (roomType === RoomType.UNKNOWN) {
     // Very narrow rooms are likely hallways
@@ -99,7 +100,7 @@ export function classifyRoom(room: RoboflowPrediction, pixelsToFeet: number = PI
       roomType = RoomType.LIVING_ROOM;
     }
   }
-  
+
   return {
     ...room,
     roomType,
@@ -128,6 +129,6 @@ export function classifyRooms(predictions: RoboflowPrediction[], pixelsToFeet: n
 /**
  * Formats a dimension for display
  */
-export function formatDimension(value: number, unit: string = 'ft'): string {
+export function formatDimension(value: number, unit = 'ft'): string {
   return `${Math.round(value * 10) / 10} ${unit}`;
 }

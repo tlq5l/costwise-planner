@@ -1,10 +1,10 @@
-import { useState, useCallback, useRef, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Upload, X, Check, RefreshCw, Scan } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { processFloorPlan } from "@/lib/gemini";
-import { EstimationResult, UploadStatus, ProcessedRoboflowResponse, ClassifiedRoom } from "@/types";
 import { detectRoomsWithAnimation } from "@/lib/roboflow";
+import type { ClassifiedRoom, EstimationResult, UploadStatus } from "@/types";
+import { AnimatePresence, motion } from "framer-motion";
+import { Check, RefreshCw, Scan, Upload, X } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 interface FileUploaderProps {
   onEstimationComplete: (result: EstimationResult) => void;
@@ -65,21 +65,21 @@ const FileUploader = ({ onEstimationComplete }: FileUploaderProps) => {
     }
 
     setFile(selectedFile);
-    
+
     if (selectedFile.type.startsWith('image/')) {
       const objectUrl = URL.createObjectURL(selectedFile);
       setPreviewUrl(objectUrl);
-      
+
       // Convert to base64 for later processing
       convertFileToBase64(selectedFile);
     } else {
       setPreviewUrl(null);
     }
-    
+
     setUploadStatus("idle");
     setDetectedRooms([]);
   };
-  
+
   const convertFileToBase64 = (file: File) => {
     const reader = new FileReader();
     reader.onload = () => {
@@ -114,18 +114,18 @@ const FileUploader = ({ onEstimationComplete }: FileUploaderProps) => {
   // Animation effect for detected rooms
   useEffect(() => {
     let animationTimer: NodeJS.Timeout;
-    
+
     if (uploadStatus === "roomDetection" && detectedRooms.length > 0) {
       // Calculate progress percentage
       const progress = (detectedRooms.length / (detectedRooms[0].class_id + 5)) * 100;
       setDetectionProgress(Math.min(progress, 100));
-      
+
       // If we've detected multiple rooms, simulate adding them one by one
       if (detectionProgress >= 100) {
         setUploadStatus("processing");
       }
     }
-    
+
     return () => {
       if (animationTimer) clearTimeout(animationTimer);
     };
@@ -137,28 +137,28 @@ const FileUploader = ({ onEstimationComplete }: FileUploaderProps) => {
     try {
       // Upload phase
       setUploadStatus("uploading");
-      
+
       // Short delay to show the uploading state
       await new Promise(resolve => setTimeout(resolve, 800));
-      
+
       // Room detection phase with animation
       setUploadStatus("roomDetection");
-      
+
       // Start the room detection with animation
       const { fullResponse, getNextRoom, remainingCount } = await detectRoomsWithAnimation(imageBase64);
-      
+
       // Animation loop to show rooms being detected
       const animateDetection = () => {
         const nextRoom = getNextRoom();
         if (nextRoom) {
           setDetectedRooms(prev => [...prev, nextRoom]);
-          
+
           // Continue animating rooms
           setTimeout(animateDetection, 500);
         } else {
           // Room detection complete, proceed to processing
           setUploadStatus("processing");
-          
+
           // Process the floor plan using Gemini AI
           processFloorPlan(file).then(result => {
             // Override the room detection with our enhanced version
@@ -166,11 +166,11 @@ const FileUploader = ({ onEstimationComplete }: FileUploaderProps) => {
               ...result,
               roomDetection: fullResponse
             };
-            
+
             // Update status and notify parent component
             setUploadStatus("success");
             onEstimationComplete(enhancedResult);
-            
+
             toast({
               title: "Analysis complete",
               description: "Your floor plan has been analyzed successfully",
@@ -178,14 +178,14 @@ const FileUploader = ({ onEstimationComplete }: FileUploaderProps) => {
           });
         }
       };
-      
+
       // Start the animation
       animateDetection();
-      
+
     } catch (error) {
       console.error("Error processing file:", error);
       setUploadStatus("error");
-      
+
       toast({
         title: "Processing failed",
         description: "There was an error analyzing your floor plan",
@@ -197,7 +197,7 @@ const FileUploader = ({ onEstimationComplete }: FileUploaderProps) => {
   // Helper for rendering room detection animation
   const renderRoomDetectionAnimation = () => {
     if (!previewUrl) return null;
-    
+
     return (
       <div className="relative mt-4 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden aspect-[4/3]">
         <img
@@ -205,27 +205,28 @@ const FileUploader = ({ onEstimationComplete }: FileUploaderProps) => {
           alt="Floor plan preview"
           className="w-full h-full object-contain"
         />
-        
+
         {/* Room detection overlay */}
         {detectedRooms.length > 0 && (
           <svg
             className="absolute inset-0 w-full h-full"
             viewBox="0 0 600 400"
             preserveAspectRatio="none"
+            aria-label="Room detection visualization"
           >
             {detectedRooms.map((room, index) => {
               // Create SVG path from points
               const pointsToPath = (points: { x: number; y: number }[]): string => {
                 if (points.length === 0) return '';
-                
+
                 const pathCommands = points.reduce((path, point, index) => {
                   const command = index === 0 ? 'M' : 'L';
                   return `${path} ${command} ${point.x} ${point.y}`;
                 }, '');
-                
+
                 return `${pathCommands} Z`; // Z command closes the path
               };
-              
+
               return (
                 <motion.path
                   key={room.detection_id}
@@ -241,7 +242,7 @@ const FileUploader = ({ onEstimationComplete }: FileUploaderProps) => {
             })}
           </svg>
         )}
-        
+
         {/* Progress bar */}
         <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 py-2 px-4">
           <div className="flex items-center text-white text-sm">
@@ -287,6 +288,14 @@ const FileUploader = ({ onEstimationComplete }: FileUploaderProps) => {
           onDragLeave={onDragLeave}
           onDrop={onDrop}
           onClick={!file ? triggerFileInput : undefined}
+          onKeyDown={(e) => {
+            if (!file && (e.key === 'Enter' || e.key === ' ')) {
+              e.preventDefault();
+              triggerFileInput();
+            }
+          }}
+          role={!file ? "button" : undefined}
+          tabIndex={!file ? 0 : undefined}
           className={`file-drop-area ${isDragging ? 'active' : ''} ${file ? 'cursor-default' : 'cursor-pointer'}`}
         >
           <input

@@ -1,22 +1,21 @@
-import { useState, useRef, useEffect } from "react";
+import { ROOM_COLORS, formatDimension } from "@/lib/roomClassifier";
+import type { ClassifiedRoom, ProcessedRoboflowResponse } from "@/types";
 import { motion } from "framer-motion";
 import {
-  ZoomIn,
-  ZoomOut,
-  Move,
-  RotateCcw,
-  Layers,
-  Ruler,
-  Eye,
-  EyeOff
+    Eye,
+    EyeOff,
+    Layers,
+    RotateCcw,
+    Ruler,
+    ZoomIn,
+    ZoomOut
 } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
 import {
-  TransformWrapper,
-  TransformComponent,
-  ReactZoomPanPinchRef
+    type ReactZoomPanPinchRef,
+    TransformComponent,
+    TransformWrapper
 } from "react-zoom-pan-pinch";
-import { ClassifiedRoom, ProcessedRoboflowResponse, RoomType } from "@/types";
-import { formatDimension, ROOM_COLORS } from "@/lib/roomClassifier";
 
 interface FloorPlanViewerProps {
   imageUrl: string;
@@ -43,27 +42,27 @@ const FloorPlanViewer = ({
   const [showDimensions, setShowDimensions] = useState(true);
   const [showAllRooms, setShowAllRooms] = useState(true);
   const transformComponentRef = useRef<ReactZoomPanPinchRef | null>(null);
-  
+
   // For animation of room detection
   const [animationIndex, setAnimationIndex] = useState(0);
-  
+
   // Points to SVG path converter
   const pointsToPath = (points: { x: number; y: number }[]): string => {
     if (points.length === 0) return '';
-    
+
     const pathCommands = points.reduce((path, point, index) => {
       const command = index === 0 ? 'M' : 'L';
       return `${path} ${command} ${point.x} ${point.y}`;
     }, '');
-    
+
     return `${pathCommands} Z`; // Z command closes the path
   };
-  
+
   // Calculate center point of a room for label positioning
   const getRoomCenter = (room: ClassifiedRoom) => {
     return { x: room.x, y: room.y };
   };
-  
+
   // Filter handler for room types
   const toggleRoomVisibility = (roomId: string) => {
     setRooms(prevRooms =>
@@ -74,7 +73,7 @@ const FloorPlanViewer = ({
       )
     );
   };
-  
+
   // Toggle highlight for a specific room
   const toggleRoomHighlight = (roomId: string) => {
     setRooms(prevRooms =>
@@ -85,14 +84,14 @@ const FloorPlanViewer = ({
       )
     );
   };
-  
+
   // Reset zoom and pan
   const resetTransform = () => {
     if (transformComponentRef.current) {
       transformComponentRef.current.resetTransform();
     }
   };
-  
+
   // Animation effect when isAnimating is true
   useEffect(() => {
     if (isAnimating && animationIndex < rooms.length) {
@@ -106,13 +105,13 @@ const FloorPlanViewer = ({
         );
         setAnimationIndex(prev => prev + 1);
       }, 500);
-      
+
       return () => clearTimeout(timer);
     } else if (isAnimating && animationIndex >= rooms.length) {
       onAnimationComplete?.();
     }
   }, [isAnimating, animationIndex, rooms.length, onAnimationComplete]);
-  
+
   // Toggle all rooms visibility
   const toggleAllRooms = () => {
     setShowAllRooms(!showAllRooms);
@@ -120,38 +119,42 @@ const FloorPlanViewer = ({
       prevRooms.map(room => ({ ...room, isVisible: !showAllRooms }))
     );
   };
-  
+
   return (
     <div className="relative w-full h-full rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800">
       {/* Control panel */}
       <div className="absolute top-4 left-4 z-20 bg-white dark:bg-gray-900 rounded-lg shadow-md p-2 space-y-2">
         <button
+          type="button"
           onClick={() => transformComponentRef.current?.zoomIn()}
           className="w-8 h-8 flex items-center justify-center rounded hover:bg-gray-100 dark:hover:bg-gray-800"
           aria-label="Zoom in"
         >
           <ZoomIn className="w-5 h-5 text-gray-700 dark:text-gray-300" />
         </button>
-        
+
         <button
+          type="button"
           onClick={() => transformComponentRef.current?.zoomOut()}
           className="w-8 h-8 flex items-center justify-center rounded hover:bg-gray-100 dark:hover:bg-gray-800"
           aria-label="Zoom out"
         >
           <ZoomOut className="w-5 h-5 text-gray-700 dark:text-gray-300" />
         </button>
-        
+
         <button
+          type="button"
           onClick={resetTransform}
           className="w-8 h-8 flex items-center justify-center rounded hover:bg-gray-100 dark:hover:bg-gray-800"
           aria-label="Reset view"
         >
           <RotateCcw className="w-5 h-5 text-gray-700 dark:text-gray-300" />
         </button>
-        
-        <div className="border-t border-gray-200 dark:border-gray-700 pt-2"></div>
-        
+
+        <div className="border-t border-gray-200 dark:border-gray-700 pt-2" />
+
         <button
+          type="button"
           onClick={() => setShowLabels(!showLabels)}
           className={`w-8 h-8 flex items-center justify-center rounded ${
             showLabels ? 'bg-blue-100 dark:bg-blue-900' : 'hover:bg-gray-100 dark:hover:bg-gray-800'
@@ -162,8 +165,9 @@ const FloorPlanViewer = ({
             showLabels ? 'text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300'
           }`} />
         </button>
-        
+
         <button
+          type="button"
           onClick={() => setShowDimensions(!showDimensions)}
           className={`w-8 h-8 flex items-center justify-center rounded ${
             showDimensions ? 'bg-blue-100 dark:bg-blue-900' : 'hover:bg-gray-100 dark:hover:bg-gray-800'
@@ -174,8 +178,9 @@ const FloorPlanViewer = ({
             showDimensions ? 'text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300'
           }`} />
         </button>
-        
+
         <button
+          type="button"
           onClick={toggleAllRooms}
           className="w-8 h-8 flex items-center justify-center rounded hover:bg-gray-100 dark:hover:bg-gray-800"
           aria-label={showAllRooms ? "Hide all rooms" : "Show all rooms"}
@@ -187,7 +192,7 @@ const FloorPlanViewer = ({
           )}
         </button>
       </div>
-      
+
       {/* Room type legend */}
       <div className="absolute top-4 right-4 z-20 bg-white dark:bg-gray-900 rounded-lg shadow-md p-3 max-w-xs">
         <h4 className="text-sm font-medium mb-2">Room Types</h4>
@@ -197,13 +202,13 @@ const FloorPlanViewer = ({
               <div
                 className="w-3 h-3 rounded-full mr-2 flex-shrink-0"
                 style={{ backgroundColor: color }}
-              ></div>
+              />
               <span className="truncate capitalize">{roomType.toLowerCase().replace('_', ' ')}</span>
             </div>
           ))}
         </div>
       </div>
-      
+
       {/* Interactive floor plan with zoom/pan */}
       <TransformWrapper
         ref={transformComponentRef}
@@ -217,7 +222,7 @@ const FloorPlanViewer = ({
         {({ zoomIn, zoomOut, setTransform, ...rest }) => (
           <React.Fragment>
             <TransformComponent
-              wrapperClassName="w-full h-full"
+              wrapperClass="w-full h-full"
               contentClass="w-full h-full"
             >
               <div className="relative w-full h-full">
@@ -227,7 +232,7 @@ const FloorPlanViewer = ({
                   alt="Floor plan"
                   className="w-full h-full object-contain"
                 />
-                
+
                 {/* SVG overlay for room visualization */}
                 <svg
                   width="100%"
@@ -258,7 +263,7 @@ const FloorPlanViewer = ({
                           strokeWidth={room.isHighlighted ? "2" : "1.5"}
                           className="cursor-pointer transition-colors duration-300"
                         />
-                        
+
                         {/* Room label */}
                         {showLabels && (
                           <g>
@@ -287,7 +292,7 @@ const FloorPlanViewer = ({
                             </text>
                           </g>
                         )}
-                        
+
                         {/* Dimension labels */}
                         {showDimensions && (
                           <>
@@ -315,7 +320,7 @@ const FloorPlanViewer = ({
                                 {formatDimension(room.dimensions.widthFt)}
                               </text>
                             </g>
-                            
+
                             {/* Height dimension */}
                             <g>
                               <line
@@ -343,7 +348,7 @@ const FloorPlanViewer = ({
                             </g>
                           </>
                         )}
-                        
+
                         {/* Area label */}
                         {showDimensions && (
                           <text
@@ -368,7 +373,7 @@ const FloorPlanViewer = ({
           </React.Fragment>
         )}
       </TransformWrapper>
-      
+
       {/* Room list panel */}
       <div className="absolute bottom-4 left-4 right-4 z-20 bg-white dark:bg-gray-900 rounded-lg shadow-md p-3 max-h-40 overflow-y-auto">
         <h4 className="text-sm font-medium mb-2">Detected Rooms</h4>
@@ -386,11 +391,18 @@ const FloorPlanViewer = ({
                   : ''
               }`}
               onClick={() => toggleRoomVisibility(room.detection_id)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  toggleRoomVisibility(room.detection_id);
+                }
+              }}
+              role="button"
+              tabIndex={0}
             >
               <div
                 className="w-3 h-3 rounded-full mr-2 flex-shrink-0"
                 style={{ backgroundColor: room.color, opacity: room.isVisible ? 1 : 0.5 }}
-              ></div>
+              />
               <span className="truncate capitalize">
                 {room.roomType} ({Math.round(room.dimensions.areaFt)} sq.ft)
               </span>
