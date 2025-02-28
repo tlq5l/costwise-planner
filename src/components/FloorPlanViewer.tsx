@@ -124,7 +124,7 @@ const FloorPlanViewer = ({
   };
 
   return (
-    <div className="relative w-full h-full rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800">
+    <div className="relative w-full h-full rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800" style={{ minHeight: '500px' }}>
       {/* Control panel */}
       <div className="absolute top-4 left-4 z-20 bg-white dark:bg-gray-900 rounded-lg shadow-md p-2 space-y-2">
         <button
@@ -241,7 +241,7 @@ const FloorPlanViewer = ({
                   width="100%"
                   height="100%"
                   viewBox={`0 0 ${roomDetection.image.width} ${roomDetection.image.height}`}
-                  preserveAspectRatio="none"
+                  preserveAspectRatio="xMidYMid meet"
                   style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none' }}
                   role="img"
                   aria-label="Room detection overlay"

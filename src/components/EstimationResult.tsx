@@ -1,11 +1,11 @@
 import { toast } from "@/hooks/use-toast";
+import { classifyRooms } from "@/lib/roomClassifier";
 import type { EstimationResult as EstimationResultType, ProcessedRoboflowResponse } from "@/types";
 import { motion } from "framer-motion";
 import { ChevronDown, ChevronUp, Download, Save } from "lucide-react";
 import { useState } from "react";
 import CostBreakdown from "./CostBreakdown";
 import FloorPlanViewer from "./FloorPlanViewer";
-import { classifyRooms } from "@/lib/roomClassifier";
 
 interface EstimationResultProps {
 	result: EstimationResultType;
@@ -29,7 +29,7 @@ const formatCurrency = (value: number, currency: string): string => {
 
 const EstimationResult = ({ result }: EstimationResultProps) => {
 	const [isExpanded, setIsExpanded] = useState(true);
-	
+
 	// Process room detection data to include classified rooms if needed
 	const processedRoomDetection: ProcessedRoboflowResponse | undefined = result.roomDetection
 	? {
@@ -166,7 +166,7 @@ const EstimationResult = ({ result }: EstimationResultProps) => {
 						</div>
 
 						<div className="flex flex-col md:flex-row gap-6 mb-6">
-							<div className="w-full md:w-1/2 aspect-[4/3] bg-gray-100 rounded-lg overflow-hidden dark:bg-gray-700">
+							<div className="w-full md:w-1/2 bg-gray-100 rounded-lg overflow-hidden dark:bg-gray-700" style={{ minHeight: '500px', height: 'auto' }}>
 								{result.imageUrl && processedRoomDetection && (
 									<div className="relative w-full h-full">
 										<FloorPlanViewer

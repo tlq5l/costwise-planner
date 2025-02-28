@@ -198,8 +198,21 @@ const FileUploader = ({ onEstimationComplete }: FileUploaderProps) => {
   const renderRoomDetectionAnimation = () => {
     if (!previewUrl) return null;
 
+    // Find the bounds of the detected rooms to set appropriate viewBox
+    let maxWidth = 600;
+    let maxHeight = 400;
+
+    if (detectedRooms.length > 0) {
+      // Try to determine appropriate dimensions from the detected rooms
+      const maxX = Math.max(...detectedRooms.map(room => Math.max(...room.points.map(p => p.x))));
+      const maxY = Math.max(...detectedRooms.map(room => Math.max(...room.points.map(p => p.y))));
+
+      if (maxX > 0) maxWidth = maxX * 1.1; // Add 10% margin
+      if (maxY > 0) maxHeight = maxY * 1.1; // Add 10% margin
+    }
+
     return (
-      <div className="relative mt-4 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden aspect-[4/3]">
+      <div className="relative mt-4 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden" style={{ minHeight: '400px', height: 'auto' }}>
         <img
           src={previewUrl}
           alt="Floor plan preview"
@@ -210,8 +223,8 @@ const FileUploader = ({ onEstimationComplete }: FileUploaderProps) => {
         {detectedRooms.length > 0 && (
           <svg
             className="absolute inset-0 w-full h-full"
-            viewBox="0 0 600 400"
-            preserveAspectRatio="none"
+            viewBox={`0 0 ${maxWidth} ${maxHeight}`}
+            preserveAspectRatio="xMidYMid meet"
             aria-label="Room detection visualization"
           >
             <title>Floor plan room detection</title>
