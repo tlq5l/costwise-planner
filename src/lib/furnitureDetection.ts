@@ -1,8 +1,8 @@
 import type { ClassifiedRoom, RoboflowPoint } from "@/types";
 import {
-  type FurnitureDetectionResponse,
-  type FurnitureItem,
-  FurnitureType,
+	type FurnitureDetectionResponse,
+	type FurnitureItem,
+	FurnitureType,
 } from "@/types";
 import axios from "axios";
 
@@ -48,45 +48,45 @@ function mapToFurnitureType(className: string): FurnitureType {
 
 	// Door recognition
 	if (lowerClassName.includes("door")) return FurnitureType.DOOR;
-	
+
 	// Window recognition
 	if (lowerClassName.includes("window")) return FurnitureType.WINDOW;
-	
+
 	// Table recognition
 	if (lowerClassName.includes("table") || lowerClassName.includes("desk")) return FurnitureType.TABLE;
 	if (lowerClassName.includes("dining_table")) return FurnitureType.TABLE;
-	
+
 	// Chair recognition
 	if (lowerClassName.includes("chair")) return FurnitureType.CHAIR;
-	
+
 	// Sofa recognition
 	if (lowerClassName.includes("sofa") || lowerClassName.includes("couch")) return FurnitureType.SOFA;
 	if (lowerClassName.includes("outside_sitting")) return FurnitureType.SOFA;
-	
+
 	// Bed recognition
 	if (lowerClassName.includes("bed")) return FurnitureType.BED;
-	
+
 	// Sink recognition
 	if (lowerClassName.includes("sink") || lowerClassName.includes("washroom_sink")) return FurnitureType.SINK;
-	
+
 	// Toilet recognition
 	if (lowerClassName.includes("toilet") || lowerClassName.includes("wc") || lowerClassName.includes("washroom_seat")) return FurnitureType.TOILET;
-	
+
 	// Bathtub recognition
 	if (lowerClassName.includes("bathtub") || lowerClassName.includes("shower")) return FurnitureType.BATHTUB;
-	
+
 	// Stove recognition
 	if (lowerClassName.includes("stove") || lowerClassName.includes("oven")) return FurnitureType.STOVE;
-	
+
 	// Refrigerator recognition
 	if (lowerClassName.includes("refrigerator") || lowerClassName.includes("fridge")) return FurnitureType.REFRIGERATOR;
-	
+
 	// Cabinet recognition
 	if (lowerClassName.includes("cabinet") || lowerClassName.includes("wardrobe") || lowerClassName.includes("tv_cabinet")) return FurnitureType.CABINET;
-	
+
 	// Counter recognition
 	if (lowerClassName.includes("counter")) return FurnitureType.COUNTER;
-	
+
 	// Stairs recognition
 	if (lowerClassName.includes("stair")) return FurnitureType.STAIRS;
 
@@ -127,7 +127,7 @@ export async function detectFurnitureFromBase64(
 			url: MODEL_ENDPOINT,
 			params: {
 				api_key: API_KEY,
-				confidence: 0.4,
+				confidence: 0.6,
 				overlap: 30,
 				format: "json",
 			},
@@ -167,7 +167,7 @@ export async function detectFurnitureFromUrl(
 			url: MODEL_ENDPOINT,
 			params: {
 				api_key: API_KEY,
-				confidence: 0.4,
+				confidence: 0.6,
 				image: imageUrl,
 			},
 		});
@@ -250,17 +250,17 @@ export function assignFurnitureToRooms(
 				{ x: item.x - item.width / 2, y: item.y + item.height / 2 }, // Bottom-left
 				{ x: item.x + item.width / 2, y: item.y + item.height / 2 }, // Bottom-right
 			];
-			
+
 			// Count how many corners are in each room
 			const roomCounts: Record<string, number> = {};
 			let maxCount = 0;
 			let bestRoom: ClassifiedRoom | null = null;
-			
+
 			for (const corner of corners) {
 				for (const room of rooms) {
 					if (isPointInPolygon(corner.x, corner.y, room.points)) {
 						roomCounts[room.detection_id] = (roomCounts[room.detection_id] || 0) + 1;
-						
+
 						if (roomCounts[room.detection_id] > maxCount) {
 							maxCount = roomCounts[room.detection_id];
 							bestRoom = room;
@@ -268,7 +268,7 @@ export function assignFurnitureToRooms(
 					}
 				}
 			}
-			
+
 			// If at least 2 corners are in a room, assign it to that room
 			if (maxCount >= 2 && bestRoom) {
 				return {
