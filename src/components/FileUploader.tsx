@@ -188,16 +188,9 @@ const FileUploader = ({ onAnalysisComplete }: FileUploaderProps) => {
 
               // Process the floor plan using room analysis
               processFloorPlan(file).then(result => {
-                // Override with our enhanced versions
-                const enhancedResult = {
-                  ...result,
-                  roomDetection: roomResults.fullResponse,
-                  furnitureDetection: furnitureResults.fullResponse
-                };
-
                 // Update status and notify parent component
                 setUploadStatus("success");
-                onAnalysisComplete(enhancedResult);
+                onAnalysisComplete(result);
 
                 toast({
                   title: "Analysis complete",
