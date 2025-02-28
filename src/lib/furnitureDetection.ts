@@ -9,6 +9,18 @@ import axios from "axios";
 const API_KEY = "oru2Kv8shKMEebi3jNUk";
 const MODEL_ENDPOINT = "https://detect.roboflow.com/floor_plan_detection/3";
 
+// Define interface for raw Roboflow prediction
+interface RoboflowFurniturePrediction {
+	x: number;
+	y: number;
+	width: number;
+	height: number;
+	confidence: number;
+	class: string;
+	class_id?: number;
+	detection_id?: string;
+}
+
 // Colors for different furniture types
 export const FURNITURE_COLORS: Record<FurnitureType, string> = {
 	[FurnitureType.DOOR]: "#FF5733", // Red-orange
@@ -63,7 +75,7 @@ function mapToFurnitureType(className: string): FurnitureType {
 /**
  * Process a raw prediction to a FurnitureItem
  */
-function processFurnitureItem(prediction: any, index: number): FurnitureItem {
+function processFurnitureItem(prediction: RoboflowFurniturePrediction, index: number): FurnitureItem {
 	const furnitureType = mapToFurnitureType(prediction.class);
 
 	return {

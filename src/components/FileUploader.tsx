@@ -1,7 +1,7 @@
 import { toast } from "@/hooks/use-toast";
-import { processFloorPlan } from "@/lib/roomAnalysis";
-import { detectRoomsWithAnimation } from "@/lib/roboflow";
 import { detectFurnitureWithAnimation } from "@/lib/furnitureDetection";
+import { detectRoomsWithAnimation } from "@/lib/roboflow";
+import { processFloorPlan } from "@/lib/roomAnalysis";
 import type { ClassifiedRoom, FurnitureItem, RoomAnalysisResult, UploadStatus } from "@/types";
 import { AnimatePresence, motion } from "framer-motion";
 import { Check, RefreshCw, Scan, Upload, X } from "lucide-react";
@@ -22,6 +22,56 @@ const FileUploader = ({ onAnalysisComplete }: FileUploaderProps) => {
   const [detectionProgress, setDetectionProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const convertFileToBase64 = useCallback((file: File) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64 = reader.result as string;
+      // Remove data URL prefix
+      setImageBase64(base64.split(',')[1]);
+    };
+    reader.readAsDataURL(file);
+  }, []);
+
+  // Define handleFileSelection with useCallback to stabilize the reference
+  const handleFileSelection = useCallback((selectedFile: File) => {
+    // Check file type
+    const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
+    if (!validTypes.includes(selectedFile.type)) {
+      toast({
+        title: "Invalid file type",
+        description: "Please upload an image (JPEG, PNG) or PDF file",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check file size (max 10MB)
+    if (selectedFile.size > 10 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Please upload a file smaller than 10MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Set the file and reset statuses
+    setFile(selectedFile);
+    setUploadStatus('idle');
+    setDetectedRooms([]);
+    setDetectedFurniture([]);
+
+    if (selectedFile.type.startsWith('image/')) {
+      const objectUrl = URL.createObjectURL(selectedFile);
+      setPreviewUrl(objectUrl);
+
+      // Convert to base64 for later processing
+      convertFileToBase64(selectedFile);
+    } else {
+      setPreviewUrl(null);
+    }
+  }, [convertFileToBase64]);
+
   const onDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragging(true);
@@ -41,57 +91,8 @@ const FileUploader = ({ onAnalysisComplete }: FileUploaderProps) => {
         handleFileSelection(e.dataTransfer.files[0]);
       }
     },
-    []
+    [handleFileSelection]
   );
-
-  const handleFileSelection = (selectedFile: File) => {
-    // Check file type
-    const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
-    if (!validTypes.includes(selectedFile.type)) {
-      toast({
-        title: "Invalid file type",
-        description: "Please upload an image (JPEG, PNG) or PDF file",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Check file size (limit to 10MB)
-    if (selectedFile.size > 10 * 1024 * 1024) {
-      toast({
-        title: "File too large",
-        description: "Please upload a file smaller than 10MB",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setFile(selectedFile);
-
-    if (selectedFile.type.startsWith('image/')) {
-      const objectUrl = URL.createObjectURL(selectedFile);
-      setPreviewUrl(objectUrl);
-
-      // Convert to base64 for later processing
-      convertFileToBase64(selectedFile);
-    } else {
-      setPreviewUrl(null);
-    }
-
-    setUploadStatus("idle");
-    setDetectedRooms([]);
-    setDetectedFurniture([]);
-  };
-
-  const convertFileToBase64 = (file: File) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const base64 = reader.result as string;
-      // Remove data URL prefix
-      setImageBase64(base64.split(',')[1]);
-    };
-    reader.readAsDataURL(file);
-  };
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -132,7 +133,7 @@ const FileUploader = ({ onAnalysisComplete }: FileUploaderProps) => {
       // Calculate progress percentage for furniture detection (50% of total)
       const progress = 50 + (detectedFurniture.length / (detectedFurniture.length + 3)) * 50;
       setDetectionProgress(Math.min(progress, 100));
-      
+
       // When furniture detection is complete
       if (detectionProgress >= 100) {
         setUploadStatus("processing");
@@ -170,10 +171,10 @@ const FileUploader = ({ onAnalysisComplete }: FileUploaderProps) => {
         } else {
           // Room detection complete, proceed to furniture detection
           setUploadStatus("furnitureDetection");
-          
+
           // Start furniture detection with animation
           const furnitureResults = await detectFurnitureWithAnimation(imageBase64);
-          
+
           // Animation loop to show furniture being detected
           const animateFurnitureDetection = () => {
             const nextItem = furnitureResults.getNextItem();
@@ -184,7 +185,7 @@ const FileUploader = ({ onAnalysisComplete }: FileUploaderProps) => {
             } else {
               // Furniture detection complete, proceed to processing
               setUploadStatus("processing");
-              
+
               // Process the floor plan using room analysis
               processFloorPlan(file).then(result => {
                 // Override with our enhanced versions
@@ -193,11 +194,11 @@ const FileUploader = ({ onAnalysisComplete }: FileUploaderProps) => {
                   roomDetection: roomResults.fullResponse,
                   furnitureDetection: furnitureResults.fullResponse
                 };
-                
+
                 // Update status and notify parent component
                 setUploadStatus("success");
                 onAnalysisComplete(enhancedResult);
-                
+
                 toast({
                   title: "Analysis complete",
                   description: "Your floor plan has been analyzed successfully",
@@ -205,7 +206,7 @@ const FileUploader = ({ onAnalysisComplete }: FileUploaderProps) => {
               });
             }
           };
-          
+
           // Start the furniture animation
           animateFurnitureDetection();
         }
@@ -259,7 +260,7 @@ const FileUploader = ({ onAnalysisComplete }: FileUploaderProps) => {
           aria-label="Detection visualization"
         >
           <title>Floor plan detection</title>
-          
+
           {/* Room polygons */}
           {detectedRooms.map((room, index) => {
             // Create SVG path from points
@@ -287,7 +288,7 @@ const FileUploader = ({ onAnalysisComplete }: FileUploaderProps) => {
               />
             );
           })}
-          
+
           {/* Furniture boxes */}
           {detectedFurniture.map((item, index) => (
             <motion.rect

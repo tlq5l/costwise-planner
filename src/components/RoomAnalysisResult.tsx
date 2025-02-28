@@ -6,12 +6,11 @@ import type {
   FurnitureDetectionResponse,
   FurnitureItem,
   FurnitureType,
-  ProcessedRoboflowResponse,
   RoomAnalysisResult as RoomAnalysisResultType
 } from "@/types";
 import { motion } from "framer-motion";
 import { ChevronDown, ChevronUp, Download, Home, Save, Sofa } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import FloorPlanViewer from "./FloorPlanViewer";
 import RoomAreaBreakdown from "./RoomAreaBreakdown";
 
@@ -33,12 +32,14 @@ const RoomAnalysisResult = ({ result }: RoomAnalysisResultProps) => {
   const [combinedAnalysis, setCombinedAnalysis] = useState<CombinedFloorPlanAnalysis | null>(null);
 
   // Process room detection data to include classified rooms if needed
-  const processedRoomDetection: ProcessedRoboflowResponse | undefined = result.roomDetection
-    ? {
-        ...result.roomDetection,
-        predictions: classifyRooms(result.roomDetection.predictions)
-      }
-    : undefined;
+  const processedRoomDetection = useMemo(() => {
+    return result.roomDetection
+      ? {
+          ...result.roomDetection,
+          predictions: classifyRooms(result.roomDetection.predictions)
+        }
+      : undefined;
+  }, [result.roomDetection]);
 
   // Get the furniture detection
   const furnitureDetection: FurnitureDetectionResponse | undefined = result.furnitureDetection;
