@@ -17,13 +17,13 @@ export const ROOM_COLORS: Record<RoomType, string> = {
   [RoomType.UNKNOWN]: "#cbd5e1", // slate-300
 };
 
-// Dimension constants for classification (in square feet)
+// Dimension constants for classification (in square meters)
 const ROOM_SIZE_THRESHOLDS = {
-  TINY: 30,    // Closets, small bathrooms
-  SMALL: 80,   // Bathrooms, small bedrooms
-  MEDIUM: 150, // Bedrooms, kitchens
-  LARGE: 250,  // Master bedrooms, living rooms
-  HUGE: 400,   // Great rooms, large living spaces
+  TINY: 3,     // Closets, small bathrooms (converted from ~30 sq.ft)
+  SMALL: 7.5,  // Bathrooms, small bedrooms (converted from ~80 sq.ft)
+  MEDIUM: 14,  // Bedrooms, kitchens (converted from ~150 sq.ft)
+  LARGE: 23,   // Master bedrooms, living rooms (converted from ~250 sq.ft)
+  HUGE: 37,    // Great rooms, large living spaces (converted from ~400 sq.ft)
 };
 
 // Aspect ratio thresholds for classification
@@ -32,9 +32,9 @@ const ASPECT_RATIO = {
   SQUARE: 0.85, // nearly square rooms
 };
 
-// Pixels to feet conversion (approximate, can be adjusted)
+// Pixels to meters conversion (approximate, can be adjusted)
 // This would ideally be calculated based on known dimensions
-export const PIXELS_TO_FEET = 0.1;
+export const PIXELS_TO_METERS = 0.03048; // Converted from 0.1 feet (1 foot = 0.3048 meters)
 
 /**
  * Calculate polygon area using the Shoelace formula (Surveyor's formula)
@@ -85,7 +85,7 @@ export function identifyRoomTypeFromClass(className: string): RoomType {
 /**
  * Calculates dimensions and classifies a room based on size and aspect ratio
  */
-export function classifyRoom(room: RoboflowPrediction, pixelsToFeet: number = PIXELS_TO_FEET): ClassifiedRoom {
+export function classifyRoom(room: RoboflowPrediction, pixelsToMeters: number = PIXELS_TO_METERS): ClassifiedRoom {
   // Calculate dimensions
   const width = room.width;
   const height = room.height;
@@ -93,9 +93,15 @@ export function classifyRoom(room: RoboflowPrediction, pixelsToFeet: number = PI
   // Calculate area using the Shoelace formula for more accuracy with irregular shapes
   const area = calculatePolygonArea(room.points);
 
-  const widthFt = width * pixelsToFeet;
-  const heightFt = height * pixelsToFeet;
-  const areaFt = area * pixelsToFeet * pixelsToFeet;
+  const widthM = width * pixelsToMeters;
+  const heightM = height * pixelsToMeters;
+  const areaM2 = area * pixelsToMeters * pixelsToMeters;
+
+  // Convert to imperial units (feet)
+  const metersToFeet = 3.28084;
+  const widthFt = widthM * metersToFeet;
+  const heightFt = heightM * metersToFeet;
+  const areaFt = areaM2 * metersToFeet * metersToFeet;
 
   // Calculate aspect ratio (always <= 1.0, representing narrowness)
   const aspectRatio = Math.min(width / height, height / width);
@@ -115,22 +121,22 @@ export function classifyRoom(room: RoboflowPrediction, pixelsToFeet: number = PI
       roomType = RoomType.HALLWAY;
     }
     // Classification by size
-    else if (areaFt < ROOM_SIZE_THRESHOLDS.TINY) {
+    else if (areaM2 < ROOM_SIZE_THRESHOLDS.TINY) {
       roomType = RoomType.CLOSET;
     }
-    else if (areaFt < ROOM_SIZE_THRESHOLDS.SMALL) {
+    else if (areaM2 < ROOM_SIZE_THRESHOLDS.SMALL) {
       roomType = RoomType.BATHROOM;
     }
-    else if (areaFt < ROOM_SIZE_THRESHOLDS.MEDIUM) {
+    else if (areaM2 < ROOM_SIZE_THRESHOLDS.MEDIUM) {
       roomType = RoomType.BEDROOM;
     }
-    else if (areaFt < ROOM_SIZE_THRESHOLDS.LARGE) {
+    else if (areaM2 < ROOM_SIZE_THRESHOLDS.LARGE) {
       // More square rooms are likely living or dining rooms
       roomType = aspectRatio > ASPECT_RATIO.SQUARE
         ? RoomType.DINING_ROOM
         : RoomType.BEDROOM;
     }
-    else if (areaFt < ROOM_SIZE_THRESHOLDS.HUGE) {
+    else if (areaM2 < ROOM_SIZE_THRESHOLDS.HUGE) {
       roomType = RoomType.LIVING_ROOM;
     }
     else {
@@ -145,9 +151,12 @@ export function classifyRoom(room: RoboflowPrediction, pixelsToFeet: number = PI
     dimensions: {
       width,
       height,
+      widthM,
+      heightM,
+      area,
+      areaM2,
       widthFt,
       heightFt,
-      area,
       areaFt,
     },
     isVisible: true,
@@ -159,8 +168,8 @@ export function classifyRoom(room: RoboflowPrediction, pixelsToFeet: number = PI
 /**
  * Processes all predictions in a Roboflow response and enhances with room classification
  */
-export function classifyRooms(predictions: RoboflowPrediction[], pixelsToFeet: number = PIXELS_TO_FEET): ClassifiedRoom[] {
-  return predictions.map(prediction => classifyRoom(prediction, pixelsToFeet));
+export function classifyRooms(predictions: RoboflowPrediction[], pixelsToMeters: number = PIXELS_TO_METERS): ClassifiedRoom[] {
+  return predictions.map(prediction => classifyRoom(prediction, pixelsToMeters));
 }
 
 /**
@@ -361,7 +370,7 @@ export function classifyRoomsByFurniture(
 /**
  * Formats a dimension for display
  */
-export function formatDimension(value: number, unit = 'ft'): string {
+export function formatDimension(value: number, unit = 'm'): string {
   return `${Math.round(value * 10) / 10} ${unit}`;
 }
 
@@ -369,5 +378,5 @@ export function formatDimension(value: number, unit = 'ft'): string {
  * Calculates the total area of all rooms
  */
 export function calculateTotalArea(rooms: ClassifiedRoom[]): number {
-  return rooms.reduce((total, room) => total + room.dimensions.areaFt, 0);
+  return rooms.reduce((total, room) => total + room.dimensions.areaM2, 0);
 }

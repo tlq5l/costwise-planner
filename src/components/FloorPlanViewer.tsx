@@ -449,7 +449,7 @@ const FloorPlanViewer = ({
                                 fontWeight="400"
                                 className="select-none pointer-events-none"
                               >
-                                {formatDimension(room.dimensions.widthFt)}
+                                {formatDimension(room.dimensions.widthM, "m")}
                               </text>
                             </g>
 
@@ -475,7 +475,7 @@ const FloorPlanViewer = ({
                                 className="select-none pointer-events-none"
                                 transform={`rotate(90 ${room.x + room.width/2 + 20} ${room.y})`}
                               >
-                                {formatDimension(room.dimensions.heightFt)}
+                                {formatDimension(room.dimensions.heightM, "m")}
                               </text>
                             </g>
                           </>
@@ -493,7 +493,7 @@ const FloorPlanViewer = ({
                             fontWeight="600"
                             className="select-none pointer-events-none"
                           >
-                            {Math.round(room.dimensions.areaFt)} sq.ft
+                            {Math.round(room.dimensions.areaM2)} m²
                           </text>
                         )}
                       </motion.g>
@@ -639,7 +639,7 @@ const FloorPlanViewer = ({
                     style={{ backgroundColor: room.color, opacity: room.isVisible ? 1 : 0.5 }}
                   />
                   <span className="truncate capitalize">
-                    {room.roomType} ({Math.round(room.dimensions.areaFt)} sq.ft)
+                    {room.roomType} ({Math.round(room.dimensions.areaM2)} m²)
                   </span>
                 </button>
               ))}

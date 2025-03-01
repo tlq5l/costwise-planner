@@ -79,8 +79,11 @@ export interface ClassifiedRoom extends RoboflowPrediction {
     height: number;
     widthFt: number;
     heightFt: number;
+    widthM: number;
+    heightM: number;
     area: number;
     areaFt: number;
+    areaM2: number;
   };
   isVisible?: boolean;
   isHighlighted?: boolean;

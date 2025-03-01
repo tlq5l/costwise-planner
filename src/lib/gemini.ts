@@ -141,7 +141,7 @@ export const processFloorPlan = async (
 
 		// Calculate total area
 		const estimatedArea = roomDetection.predictions.reduce((sum, room) => {
-			return sum + (room.dimensions.areaFt);
+			return sum + (room.dimensions.areaM2);
 		}, 0);
 
 		// Generate cost categories based on room detection
