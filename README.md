@@ -52,7 +52,14 @@ npm run dev
 
 ## What technologies are used for this project?
 
-This project is built with .
+This project is built with:
+
+- Vite
+- TypeScript
+- React
+- shadcn-ui
+- Tailwind CSS
+- **Recharts** (for charts in the new ProjectAnalytics component)
 
 - Vite
 - TypeScript

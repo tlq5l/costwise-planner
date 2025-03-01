@@ -4,6 +4,7 @@ import Header from "@/components/Header";
 import FileUploader from "@/components/FileUploader";
 import RoomAnalysisResult from "@/components/RoomAnalysisResult";
 import ProjectItem from "@/components/ProjectItem";
+import ProjectAnalytics from "@/components/ProjectAnalytics";
 import { RoomAnalysisResult as RoomAnalysisResultType, Project } from "@/types";
 
 // Sample recent projects data
@@ -119,7 +120,11 @@ const Home = () => {
             <FileUploader onAnalysisComplete={handleAnalysisComplete} />
 
             {analysisResult && (
-              <RoomAnalysisResult result={analysisResult} />
+              <>
+                <RoomAnalysisResult result={analysisResult} />
+                {/* Insert the new ProjectAnalytics section here */}
+                <ProjectAnalytics />
+              </>
             )}
           </div>
         </section>
