@@ -167,3 +167,25 @@ export interface EstimationResult {
   furnitureDetection?: FurnitureDetectionResponse;
   estimatedArea?: number;
 }
+
+export interface ProjectSettings {
+  id: string;
+  measurementUnit: 'metric' | 'imperial';
+  scaleFactor?: number;  // Custom pixels-to-meters conversion
+  referenceLength?: number;  // Known length in meters
+  referencePixels?: number;  // Corresponding length in pixels
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CalibrationPoint {
+  x: number;
+  y: number;
+}
+
+export interface CalibrationData {
+  startPoint: CalibrationPoint;
+  endPoint: CalibrationPoint;
+  referenceLength: number; // in meters
+  unitLabel: string; // e.g., "m"
+}

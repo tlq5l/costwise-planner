@@ -1,4 +1,4 @@
-import type { ClassifiedRoom, FurnitureItem, RoboflowPrediction } from "@/types";
+import type { ClassifiedRoom, FurnitureItem, RoboflowPoint, RoboflowPrediction } from "@/types";
 import { FurnitureType, RoomType } from "@/types";
 
 // Color mappings for different room types
@@ -32,9 +32,27 @@ const ASPECT_RATIO = {
   SQUARE: 0.85, // nearly square rooms
 };
 
-// Pixels to meters conversion (approximate, can be adjusted)
+// Default pixels to meters conversion (approximate, can be adjusted)
 // This would ideally be calculated based on known dimensions
-export const PIXELS_TO_METERS = 0.03048; // Converted from 0.1 feet (1 foot = 0.3048 meters)
+export const DEFAULT_PIXELS_TO_METERS = 0.03048; // Converted from 0.1 feet (1 foot = 0.3048 meters)
+
+/**
+ * Calculate a dynamic scale factor based on a known reference measurement
+ * @param referenceLength Length in meters of a known reference
+ * @param referencePixels Corresponding length in pixels
+ * @returns Calculated pixels-to-meters conversion factor
+ */
+export function calculateDynamicScale(
+  referenceLength: number,
+  referencePixels: number
+): number {
+  if (referencePixels <= 0 || referenceLength <= 0) {
+    console.warn("Invalid reference measurements provided for scale calculation");
+    return DEFAULT_PIXELS_TO_METERS;
+  }
+
+  return referenceLength / referencePixels;
+}
 
 /**
  * Calculate polygon area using the Shoelace formula (Surveyor's formula)
@@ -85,7 +103,7 @@ export function identifyRoomTypeFromClass(className: string): RoomType {
 /**
  * Calculates dimensions and classifies a room based on size and aspect ratio
  */
-export function classifyRoom(room: RoboflowPrediction, pixelsToMeters: number = PIXELS_TO_METERS): ClassifiedRoom {
+export function classifyRoom(room: RoboflowPrediction, pixelsToMeters: number = DEFAULT_PIXELS_TO_METERS): ClassifiedRoom {
   // Calculate dimensions
   const width = room.width;
   const height = room.height;
@@ -168,7 +186,7 @@ export function classifyRoom(room: RoboflowPrediction, pixelsToMeters: number = 
 /**
  * Processes all predictions in a Roboflow response and enhances with room classification
  */
-export function classifyRooms(predictions: RoboflowPrediction[], pixelsToMeters: number = PIXELS_TO_METERS): ClassifiedRoom[] {
+export function classifyRooms(predictions: RoboflowPrediction[], pixelsToMeters: number = DEFAULT_PIXELS_TO_METERS): ClassifiedRoom[] {
   return predictions.map(prediction => classifyRoom(prediction, pixelsToMeters));
 }
 
@@ -379,4 +397,83 @@ export function formatDimension(value: number, unit = 'm'): string {
  */
 export function calculateTotalArea(rooms: ClassifiedRoom[]): number {
   return rooms.reduce((total, room) => total + room.dimensions.areaM2, 0);
+}
+
+/**
+ * Validate a polygon for accurate area calculation
+ * @param points Points that make up the polygon
+ * @returns Validation result with issues if any
+ */
+export function validatePolygon(points: RoboflowPoint[]): {
+  valid: boolean;
+  issues: string[];
+} {
+  const issues: string[] = [];
+
+  // Check for minimum points (3 required for a polygon)
+  if (points.length < 3) {
+    issues.push("Không đủ điểm để tạo đa giác (cần ít nhất 3 điểm)");
+    return { valid: false, issues };
+  }
+
+  // Check if first and last points are the same (closed polygon)
+  const firstPoint = points[0];
+  const lastPoint = points[points.length - 1];
+  const isClosed = firstPoint.x === lastPoint.x && firstPoint.y === lastPoint.y;
+
+  if (!isClosed && points.length > 3) {
+    // Not a deal-breaker, but should warn
+    issues.push("Đa giác không đóng kín, có thể ảnh hưởng đến tính chính xác");
+  }
+
+  // Check for self-intersections (simplified check)
+  // Note: A complete self-intersection check would be more complex
+  const uniquePoints = new Set<string>();
+  for (const point of points) {
+    const pointStr = `${point.x},${point.y}`;
+    if (uniquePoints.has(pointStr)) {
+      issues.push("Đa giác có điểm trùng lặp, có thể gây ra giao cắt");
+    }
+    uniquePoints.add(pointStr);
+  }
+
+  return {
+    valid: issues.length === 0 || (issues.length === 1 && !isClosed),
+    issues
+  };
+}
+
+/**
+ * Check if two polygons overlap
+ * Simple implementation using bounding boxes
+ * For more accurate checks, a computational geometry library should be used
+ */
+export function checkRoomOverlap(room1: ClassifiedRoom, room2: ClassifiedRoom): boolean {
+  // Simple bounding box check
+  const r1Left = room1.x - room1.width / 2;
+  const r1Right = room1.x + room1.width / 2;
+  const r1Top = room1.y - room1.height / 2;
+  const r1Bottom = room1.y + room1.height / 2;
+
+  const r2Left = room2.x - room2.width / 2;
+  const r2Right = room2.x + room2.width / 2;
+  const r2Top = room2.y - room2.height / 2;
+  const r2Bottom = room2.y + room2.height / 2;
+
+  // Check if bounding boxes overlap
+  return !(r1Right < r2Left ||
+           r1Left > r2Right ||
+           r1Bottom < r2Top ||
+           r1Top > r2Bottom);
+}
+
+/**
+ * Vietnamese-specific formatting for measurements
+ * Uses comma as decimal separator
+ */
+export function formatVietnameseMeasurement(value: number, unit = 'm'): string {
+  // Convert to string with 1 decimal place
+  const valueStr = (Math.round(value * 10) / 10).toFixed(1);
+  // Replace period with comma for Vietnamese format
+  return `${valueStr.replace('.', ',')} ${unit}`;
 }

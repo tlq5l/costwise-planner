@@ -1,4 +1,4 @@
-import { formatDimension } from "@/lib/roomClassifier";
+import { formatVietnameseMeasurement } from "@/lib/roomClassifier";
 import type { ClassifiedRoom } from "@/types";
 import { motion } from "framer-motion";
 import { useState } from "react";
@@ -77,7 +77,7 @@ const RoomAreaBreakdown = ({ rooms, totalArea }: RoomAreaBreakdownProps) => {
 									>
 										{chartData.map((entry, index) => (
 											<Cell
-												key={`cell-${index}`}
+												key={`cell-${sortedRooms[index]?.detection_id || index}`}
 												fill={COLORS[index % COLORS.length]}
 												stroke="white"
 												className="transition-opacity duration-300"
@@ -93,10 +93,10 @@ const RoomAreaBreakdown = ({ rooms, totalArea }: RoomAreaBreakdownProps) => {
 									</Pie>
 									<Tooltip
 										formatter={(value: number) => [
-											`${Math.round(value * 10) / 10} m²`,
-											"Area",
+											`${(Math.round(value * 10) / 10).toString().replace('.', ',')} m²`,
+											"Diện tích",
 										]}
-									/>
+										/>
 								</PieChart>
 							</ResponsiveContainer>
 						</div>
@@ -125,13 +125,13 @@ const RoomAreaBreakdown = ({ rooms, totalArea }: RoomAreaBreakdownProps) => {
 												style={{
 													backgroundColor: COLORS[index % COLORS.length],
 												}}
-											></div>
+											/>
 											<h4 className="font-medium capitalize">
 												{room.roomType}
 											</h4>
 										</div>
 										<span className="font-medium">
-											{formatDimension(room.dimensions.areaM2, "m²")}
+											{formatVietnameseMeasurement(room.dimensions.areaM2, "m²")}
 										</span>
 									</div>
 									<div className="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden dark:bg-gray-700">
@@ -143,11 +143,11 @@ const RoomAreaBreakdown = ({ rooms, totalArea }: RoomAreaBreakdownProps) => {
 											style={{
 												backgroundColor: COLORS[index % COLORS.length],
 											}}
-										></motion.div>
+										/>
 									</div>
 									<p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-										{formatDimension(room.dimensions.widthM, "m")} ×{" "}
-										{formatDimension(room.dimensions.heightM, "m")}
+										{formatVietnameseMeasurement(room.dimensions.widthM, "m")} ×{" "}
+										{formatVietnameseMeasurement(room.dimensions.heightM, "m")}
 									</p>
 								</motion.div>
 							))}

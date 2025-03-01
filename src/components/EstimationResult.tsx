@@ -158,9 +158,9 @@ const EstimationResult = ({ result }: EstimationResultProps) => {
 									<div className="text-sm text-gray-500 dark:text-gray-400 mb-1">
 										Estimated area
 									</div>
-									<div className="text-xl font-semibold">
-										~{Math.round(result.estimatedArea || 2000)} sq.ft
-									</div>
+								<div className="text-xl font-semibold">
+									~{Math.round(result.estimatedArea || 185).toString().replace('.', ',')} m²
+								</div>
 								</div>
 							</div>
 						</div>
@@ -185,7 +185,7 @@ const EstimationResult = ({ result }: EstimationResultProps) => {
 									<p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed">
 										The floor plan shows {formatRoomDetection()}. The total
 										estimated area is approximately{" "}
-										{Math.round(result.estimatedArea || 2000)} sq.ft.
+										{Math.round(result.estimatedArea || 185).toString().replace('.', ',')} m².
 										<br />
 										<br />
 										Based on the detected room layout, quality of finishes
