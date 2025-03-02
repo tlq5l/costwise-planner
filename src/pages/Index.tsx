@@ -5,65 +5,12 @@ import FileUploader from "@/components/FileUploader";
 import RoomAnalysisResult from "@/components/RoomAnalysisResult";
 import ProjectItem from "@/components/ProjectItem";
 import ProjectAnalytics from "@/components/ProjectAnalytics";
-import { RoomAnalysisResult as RoomAnalysisResultType, Project } from "@/types";
-
-// Sample recent projects data
-const recentProjects: Project[] = [
-  {
-    id: "1",
-    name: "Modern Farmhouse",
-    description: "Single-family residence with open floor plan and high ceilings",
-    analyses: [
-      {
-        id: "101",
-        totalArea: 2250,
-        createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
-        fileName: "farmhouse_floorplan.png",
-        imageUrl: "",
-        status: "completed"
-      }
-    ],
-    createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
-    updatedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000)
-  },
-  {
-    id: "2",
-    name: "Urban Loft Renovation",
-    description: "Converting industrial space to modern living area with exposed brick",
-    analyses: [
-      {
-        id: "102",
-        totalArea: 1850,
-        createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000),
-        fileName: "loft_plans.jpg",
-        imageUrl: "",
-        status: "completed"
-      }
-    ],
-    createdAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000),
-    updatedAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000)
-  },
-  {
-    id: "3",
-    name: "Coastal Cottage",
-    description: "Beach-adjacent residence with wrap-around porch and open kitchen",
-    analyses: [
-      {
-        id: "103",
-        totalArea: 1920,
-        createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-        fileName: "cottage_blueprint.pdf",
-        imageUrl: "",
-        status: "completed"
-      }
-    ],
-    createdAt: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000),
-    updatedAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
-  }
-];
+import { RoomAnalysisResult as RoomAnalysisResultType } from "@/types";
+import { useProjects } from "@/context/ProjectsContext";
 
 const Home = () => {
   const [analysisResult, setAnalysisResult] = useState<RoomAnalysisResultType | null>(null);
+  const { projects } = useProjects(); // Get projects from context
   
   const handleAnalysisComplete = (result: RoomAnalysisResultType) => {
     setAnalysisResult(result);
@@ -104,7 +51,7 @@ const Home = () => {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
                   <h3 className="text-lg font-medium">Projects in Progress</h3>
-                  <p className="text-4xl mt-2 font-bold">4</p>
+                  <p className="text-4xl mt-2 font-bold">{projects.length}</p>
                 </div>
                 <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
                   <h3 className="text-lg font-medium">Estimated Cost Savings</h3>
@@ -143,7 +90,7 @@ const Home = () => {
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {recentProjects.map((project) => (
+                {projects.map((project) => (
                   <ProjectItem key={project.id} project={project} />
                 ))}
               </div>
