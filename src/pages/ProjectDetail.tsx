@@ -1,14 +1,20 @@
 import { useParams, Link } from "react-router-dom";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, Calendar, MapPin, Download, Edit, Trash2 } from "lucide-react";
 import { useProjects } from "@/context/ProjectsContext";
 import Header from "@/components/Header";
 import ProjectAnalytics from "@/components/ProjectAnalytics";
+import EditProjectModal from "@/components/EditProjectModal";
+import DeleteProjectDialog from "@/components/DeleteProjectDialog";
 import { formatDistanceToNow } from "date-fns";
+import { toast } from "@/hooks/use-toast";
 
 const ProjectDetail = () => {
   const { projectId } = useParams<{ projectId: string }>();
-  const { projects } = useProjects();
+  const { projects, isLoading } = useProjects();
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   
   // Find the project with the matching ID
   const project = projects.find(p => p.id === projectId);
@@ -96,6 +102,7 @@ const ProjectDetail = () => {
               <div className="flex gap-2">
                 <button
                   type="button"
+                  onClick={() => setIsEditModalOpen(true)}
                   className="inline-flex items-center px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-600"
                 >
                   <Edit className="w-4 h-4 mr-2" />
@@ -103,6 +110,12 @@ const ProjectDetail = () => {
                 </button>
                 <button
                   type="button"
+                  onClick={() => {
+                    toast({
+                      title: "Exporting project",
+                      description: "Your project is being prepared for export",
+                    });
+                  }}
                   className="inline-flex items-center px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-600"
                 >
                   <Download className="w-4 h-4 mr-2" />
@@ -110,6 +123,7 @@ const ProjectDetail = () => {
                 </button>
                 <button
                   type="button"
+                  onClick={() => setIsDeleteDialogOpen(true)}
                   className="inline-flex items-center px-3 py-2 bg-white border border-red-300 rounded-md shadow-sm text-sm font-medium text-red-700 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 dark:bg-gray-700 dark:border-red-600 dark:text-red-400 dark:hover:bg-red-900/20"
                 >
                   <Trash2 className="w-4 h-4 mr-2" />
@@ -215,6 +229,37 @@ const ProjectDetail = () => {
           )}
         </div>
       </main>
+      
+      {/* Loading overlay */}
+      {isLoading && (
+        <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg">
+            <div className="flex items-center space-x-3">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900 dark:border-white"></div>
+              <p>Processing...</p>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Edit Project Modal */}
+      {project && isEditModalOpen && (
+        <EditProjectModal
+          isOpen={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+          project={project}
+        />
+      )}
+      
+      {/* Delete Project Confirmation */}
+      {project && isDeleteDialogOpen && (
+        <DeleteProjectDialog
+          isOpen={isDeleteDialogOpen}
+          onClose={() => setIsDeleteDialogOpen(false)}
+          projectId={project.id}
+          projectName={project.name}
+        />
+      )}
     </div>
   );
 };

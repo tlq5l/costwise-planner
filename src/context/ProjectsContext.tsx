@@ -58,11 +58,11 @@ const initialProjects: Project[] = [
 
 interface ProjectsContextType {
   projects: Project[];
-  addProject: (project: Omit<Project, 'id' | 'createdAt' | 'updatedAt' | 'analyses'>) => void;
+  addProject: (project: Omit<Project, 'id' | 'createdAt' | 'updatedAt' | 'analyses'>) => Project;
   updateProject: (updatedProject: Project) => void;
-  // Optional: Methods we might add in future phases
-  deleteProject?: (id: string) => void;
-  getProjectById?: (id: string) => Project | undefined;
+  deleteProject: (id: string) => void;
+  getProjectById: (id: string) => Project | undefined;
+  isLoading: boolean;
 }
 
 const ProjectsContext = createContext<ProjectsContextType | undefined>(undefined);
@@ -71,6 +71,9 @@ const ProjectsContext = createContext<ProjectsContextType | undefined>(undefined
 const STORAGE_KEY = 'floor_plan_analyzer_projects';
 
 export function ProjectsProvider({ children }: { children: ReactNode }) {
+  // Add loading state for API integration
+  const [isLoading, setIsLoading] = useState(false);
+  
   // Initialize from localStorage if available, otherwise use initialProjects
   const [projects, setProjects] = useState<Project[]>(() => {
     const savedProjects = localStorage.getItem(STORAGE_KEY);
@@ -105,7 +108,15 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(projects));
   }, [projects]);
 
+  const getProjectById = (id: string): Project | undefined => {
+    return projects.find(project => project.id === id);
+  };
+
   const addProject = (projectData: Omit<Project, 'id' | 'createdAt' | 'updatedAt' | 'analyses'>) => {
+    // Simulate API call
+    setIsLoading(true);
+    
+    // Create new project object
     const newProject: Project = {
       ...projectData,
       id: Math.random().toString(36).substring(2, 15), // Simple ID generation
@@ -114,27 +125,59 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
       updatedAt: new Date(),
     };
     
-    // Add the new project and sort all projects by updatedAt (descending)
-    setProjects(prev =>
-      [...prev, newProject].sort((a, b) =>
-        b.updatedAt.getTime() - a.updatedAt.getTime()
-      )
-    );
+    // Simulate API delay
+    setTimeout(() => {
+      // Add the new project and sort all projects by updatedAt (descending)
+      setProjects(prev =>
+        [...prev, newProject].sort((a, b) =>
+          b.updatedAt.getTime() - a.updatedAt.getTime()
+        )
+      );
+      setIsLoading(false);
+    }, 500);
+    
     return newProject;
   };
 
   const updateProject = (updatedProject: Project) => {
-    setProjects(prev =>
-      prev.map(project =>
-        project.id === updatedProject.id
-          ? { ...updatedProject, updatedAt: new Date() }
-          : project
-      ).sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
-    );
+    // Simulate API call
+    setIsLoading(true);
+    
+    // Simulate API delay
+    setTimeout(() => {
+      setProjects(prev =>
+        prev.map(project =>
+          project.id === updatedProject.id
+            ? { ...updatedProject, updatedAt: new Date() }
+            : project
+        ).sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
+      );
+      setIsLoading(false);
+    }, 500);
+  };
+  
+  const deleteProject = (id: string) => {
+    // Simulate API call
+    setIsLoading(true);
+    
+    // Simulate API delay
+    setTimeout(() => {
+      setProjects(prev =>
+        prev.filter(project => project.id !== id)
+      );
+      setIsLoading(false);
+    }, 500);
   };
 
   return (
-    <ProjectsContext.Provider value={{ projects, addProject, updateProject }}>
+    <ProjectsContext.Provider value={{
+      projects,
+      addProject,
+      updateProject,
+      deleteProject,
+      getProjectById,
+      isLoading
+    }}>
       {children}
     </ProjectsContext.Provider>
   );
