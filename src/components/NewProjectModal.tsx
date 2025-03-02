@@ -6,6 +6,7 @@ import { useProjects } from "@/context/ProjectsContext";
 interface NewProjectModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onCreateProject?: (projectData: { name: string, description?: string }) => void;
 }
 
 const NewProjectModal = ({ isOpen, onClose }: NewProjectModalProps) => {
@@ -28,13 +29,19 @@ const NewProjectModal = ({ isOpen, onClose }: NewProjectModalProps) => {
       `${description ? description + " • " : ""}Location: ${location}` :
       description;
 
-    // Add the new project using the context
-    const newProject = addProject({
+    const projectData = {
       name,
       description: projectDescription,
-    });
-    
-    console.log("New project created:", newProject);
+    };
+
+    // If onCreateProject callback is provided, use it
+    // Otherwise, add the project using the context
+    if (onCreateProject) {
+      onCreateProject(projectData);
+    } else {
+      const newProject = addProject(projectData);
+      console.log("New project created:", newProject);
+    }
 
     // Reset form and close modal
     setName("");

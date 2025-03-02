@@ -4,11 +4,13 @@ import { detectRoomsWithAnimation } from "@/lib/roboflow";
 import { processFloorPlan } from "@/lib/roomAnalysis";
 import type { ClassifiedRoom, FurnitureItem, RoomAnalysisResult, UploadStatus } from "@/types";
 import { AnimatePresence, motion } from "framer-motion";
-import { Check, RefreshCw, Scan, Upload, X } from "lucide-react";
+import { Check, FolderPlus, RefreshCw, Scan, Upload, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useProjects } from "@/context/ProjectsContext";
+import NewProjectModal from "./NewProjectModal";
 
 interface FileUploaderProps {
-  onAnalysisComplete: (result: RoomAnalysisResult) => void;
+  onAnalysisComplete: (result: RoomAnalysisResult, selectedProjectId?: string | null) => void;
 }
 
 const FileUploader = ({ onAnalysisComplete }: FileUploaderProps) => {
@@ -20,6 +22,9 @@ const FileUploader = ({ onAnalysisComplete }: FileUploaderProps) => {
   const [detectedFurniture, setDetectedFurniture] = useState<FurnitureItem[]>([]);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [detectionProgress, setDetectionProgress] = useState(0);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [isNewProjectModalOpen, setIsNewProjectModalOpen] = useState(false);
+  const { projects, addProject } = useProjects();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const convertFileToBase64 = useCallback((file: File) => {
@@ -116,6 +121,17 @@ const FileUploader = ({ onAnalysisComplete }: FileUploaderProps) => {
     }
   };
 
+  const handleCreateProject = (projectData: { name: string, description?: string }) => {
+    const newProject = addProject(projectData);
+    setSelectedProjectId(newProject.id);
+    setIsNewProjectModalOpen(false);
+    
+    toast({
+      title: "Project created",
+      description: `New project "${projectData.name}" created successfully`,
+    });
+  };
+
   // Animation effect for detected elements
   useEffect(() => {
     let animationTimer: NodeJS.Timeout;
@@ -204,11 +220,19 @@ const FileUploader = ({ onAnalysisComplete }: FileUploaderProps) => {
                   setDetectedFurniture(enhancedFurniture);
                 }
 
-                onAnalysisComplete(result);
+                // Pass the selected project ID to the callback
+                onAnalysisComplete(result, selectedProjectId);
+
+                // Prepare toast message based on project selection
+                let description = "Your floor plan has been analyzed successfully";
+                if (selectedProjectId) {
+                  const projectName = projects.find(p => p.id === selectedProjectId)?.name;
+                  description += ` and added to "${projectName}"`;
+                }
 
                 toast({
                   title: "Analysis complete",
-                  description: "Your floor plan has been analyzed successfully",
+                  description,
                 });
               });
             }
@@ -358,6 +382,41 @@ const FileUploader = ({ onAnalysisComplete }: FileUploaderProps) => {
       </motion.div>
 
       <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.1 }}
+        className="mb-6 bg-white rounded-lg p-4 shadow-sm dark:bg-gray-800 border border-gray-100 dark:border-gray-700"
+      >
+        <h3 className="text-sm font-medium mb-3">Choose Project</h3>
+        <div className="flex items-center gap-2">
+          <div className="flex-1">
+            <select
+              value={selectedProjectId || ""}
+              onChange={(e) => setSelectedProjectId(e.target.value || null)}
+              className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+            >
+              <option value="">Select a project</option>
+              {projects.map(project => (
+                <option key={project.id} value={project.id}>
+                  {project.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsNewProjectModalOpen(true)}
+            className="px-3 py-2 rounded-md bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+          >
+            <FolderPlus className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+          </button>
+        </div>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+          Select an existing project or create a new one to save your analysis
+        </p>
+      </motion.div>
+
+      <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.5, delay: 0.2 }}
@@ -503,6 +562,13 @@ const FileUploader = ({ onAnalysisComplete }: FileUploaderProps) => {
           </AnimatePresence>
         </div>
       </motion.div>
+
+      {/* New Project Modal */}
+      <NewProjectModal
+        isOpen={isNewProjectModalOpen}
+        onClose={() => setIsNewProjectModalOpen(false)}
+        onCreateProject={handleCreateProject}
+      />
     </div>
   );
 };

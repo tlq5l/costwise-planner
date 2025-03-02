@@ -10,10 +10,26 @@ import { useProjects } from "@/context/ProjectsContext";
 
 const Home = () => {
   const [analysisResult, setAnalysisResult] = useState<RoomAnalysisResultType | null>(null);
-  const { projects } = useProjects(); // Get projects from context
+  const { projects, updateProject } = useProjects(); // Get projects from context
   
-  const handleAnalysisComplete = (result: RoomAnalysisResultType) => {
+  const handleAnalysisComplete = (result: RoomAnalysisResultType, selectedProjectId?: string | null) => {
     setAnalysisResult(result);
+    
+    // If a project was selected, add the analysis to it
+    if (selectedProjectId) {
+      const project = projects.find(p => p.id === selectedProjectId);
+      if (project) {
+        // Create a copy of the project with the new analysis added at the beginning
+        const updatedProject = {
+          ...project,
+          analyses: [result, ...project.analyses],
+          updatedAt: new Date()
+        };
+        
+        // Update the project in the context
+        updateProject(updatedProject);
+      }
+    }
     
     // Scroll to the results after a short delay
     setTimeout(() => {
