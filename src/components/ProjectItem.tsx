@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { Clock, ArrowRight } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { Link } from "react-router-dom";
 import { Project } from "@/types";
 
 interface ProjectItemProps {
@@ -55,14 +56,16 @@ const ProjectItem = ({ project }: ProjectItemProps) => {
             {project.analyses.length} analysis{project.analyses.length !== 1 ? 'es' : ''}
           </div>
           
-          <motion.button
-            whileHover={{ x: 2 }}
-            whileTap={{ scale: 0.95 }}
-            className="text-sm font-medium text-gray-900 flex items-center dark:text-white"
-          >
-            View details
-            <ArrowRight className="w-4 h-4 ml-1 transition-transform group-hover:translate-x-1" />
-          </motion.button>
+          <Link to={`/project/${project.id}`}>
+            <motion.button
+              whileHover={{ x: 2 }}
+              whileTap={{ scale: 0.95 }}
+              className="text-sm font-medium text-gray-900 flex items-center dark:text-white"
+            >
+              View details
+              <ArrowRight className="w-4 h-4 ml-1 transition-transform group-hover:translate-x-1" />
+            </motion.button>
+          </Link>
         </div>
       </div>
     </motion.div>

@@ -7,6 +7,7 @@ import { ProjectsProvider } from "./context/ProjectsContext";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import CostEstimationWalkthrough from "./pages/CostEstimationWalkthrough";
+import ProjectDetail from "./pages/ProjectDetail";
 
 const queryClient = new QueryClient();
 
@@ -21,6 +22,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="cost-estimation-walkthrough" element={<CostEstimationWalkthrough />} />
+            <Route path="/project/:projectId" element={<ProjectDetail />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

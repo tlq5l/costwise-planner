@@ -78,7 +78,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
       try {
         // Parse dates correctly from localStorage
         const parsed = JSON.parse(savedProjects);
-        return parsed.map((project: any) => ({
+        const projectsWithDates = parsed.map((project: any) => ({
           ...project,
           createdAt: new Date(project.createdAt),
           updatedAt: new Date(project.updatedAt),
@@ -87,6 +87,11 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
             createdAt: new Date(analysis.createdAt)
           }))
         }));
+        
+        // Sort projects by updatedAt (newest first)
+        return projectsWithDates.sort((a: Project, b: Project) =>
+          b.updatedAt.getTime() - a.updatedAt.getTime()
+        );
       } catch (error) {
         console.error('Error parsing projects from localStorage:', error);
         return initialProjects;
@@ -109,8 +114,12 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
       updatedAt: new Date(),
     };
     
-    // Put new projects at the beginning of the array so they appear first in the list
-    setProjects(prev => [newProject, ...prev]);
+    // Add the new project and sort all projects by updatedAt (descending)
+    setProjects(prev =>
+      [...prev, newProject].sort((a, b) =>
+        b.updatedAt.getTime() - a.updatedAt.getTime()
+      )
+    );
     return newProject;
   };
 
@@ -120,7 +129,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
         project.id === updatedProject.id
           ? { ...updatedProject, updatedAt: new Date() }
           : project
-      )
+      ).sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
     );
   };
 
