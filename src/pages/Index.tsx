@@ -90,9 +90,15 @@ const Home = () => {
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {projects.map((project) => (
-                  <ProjectItem key={project.id} project={project} />
-                ))}
+                {projects.length > 0 ? (
+                  projects.map((project) => (
+                    <ProjectItem key={project.id} project={project} />
+                  ))
+                ) : (
+                  <div className="col-span-3 text-center py-8 bg-gray-50 rounded-lg dark:bg-gray-800">
+                    <p className="text-gray-500 dark:text-gray-400">No projects yet. Click "New Project" to get started!</p>
+                  </div>
+                )}
               </div>
             </div>
           </section>

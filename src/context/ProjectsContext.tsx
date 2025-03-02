@@ -109,7 +109,8 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
       updatedAt: new Date(),
     };
     
-    setProjects(prev => [...prev, newProject]);
+    // Put new projects at the beginning of the array so they appear first in the list
+    setProjects(prev => [newProject, ...prev]);
     return newProject;
   };
 

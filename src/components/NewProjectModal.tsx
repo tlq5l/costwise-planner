@@ -29,10 +29,12 @@ const NewProjectModal = ({ isOpen, onClose }: NewProjectModalProps) => {
       description;
 
     // Add the new project using the context
-    addProject({
+    const newProject = addProject({
       name,
       description: projectDescription,
     });
+    
+    console.log("New project created:", newProject);
 
     // Reset form and close modal
     setName("");

@@ -26,6 +26,7 @@ const Header = ({ title = "Floor Plan Analyzer" }: HeaderProps) => {
   }, [scrolled]);
 
   const openNewProjectModal = () => {
+    console.log("Opening new project modal");
     setIsNewProjectModalOpen(true);
   };
 
