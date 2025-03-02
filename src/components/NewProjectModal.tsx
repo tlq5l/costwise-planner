@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useProjects } from "@/context/ProjectsContext";
 import { motion } from "framer-motion";
 import { X } from "lucide-react";
-import { useProjects } from "@/context/ProjectsContext";
+import { useState } from "react";
 
 interface NewProjectModalProps {
   isOpen: boolean;
@@ -9,7 +9,7 @@ interface NewProjectModalProps {
   onCreateProject?: (projectData: { name: string, description?: string }) => void;
 }
 
-const NewProjectModal = ({ isOpen, onClose }: NewProjectModalProps) => {
+const NewProjectModal = ({ isOpen, onClose, onCreateProject }: NewProjectModalProps) => {
   const [name, setName] = useState("");
   const [location, setLocation] = useState("");
   const [description, setDescription] = useState("");
@@ -17,7 +17,7 @@ const NewProjectModal = ({ isOpen, onClose }: NewProjectModalProps) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!name.trim()) {
       // Basic validation
       alert("Please enter a project name");

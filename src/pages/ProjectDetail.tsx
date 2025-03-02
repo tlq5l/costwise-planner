@@ -1,24 +1,24 @@
-import { useParams, Link } from "react-router-dom";
-import { useState } from "react";
-import { motion } from "framer-motion";
-import { ArrowLeft, Calendar, MapPin, Download, Edit, Trash2 } from "lucide-react";
-import { useProjects } from "@/context/ProjectsContext";
+import DeleteProjectDialog from "@/components/DeleteProjectDialog";
+import EditProjectModal from "@/components/EditProjectModal";
 import Header from "@/components/Header";
 import ProjectAnalytics from "@/components/ProjectAnalytics";
-import EditProjectModal from "@/components/EditProjectModal";
-import DeleteProjectDialog from "@/components/DeleteProjectDialog";
-import { formatDistanceToNow } from "date-fns";
+import { useProjects } from "@/context/ProjectsContext";
 import { toast } from "@/hooks/use-toast";
+import { formatDistanceToNow } from "date-fns";
+import { motion } from "framer-motion";
+import { ArrowLeft, Calendar, Download, Edit, MapPin, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { Link, useParams } from "react-router-dom";
 
 const ProjectDetail = () => {
   const { projectId } = useParams<{ projectId: string }>();
   const { projects, isLoading } = useProjects();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  
+
   // Find the project with the matching ID
   const project = projects.find(p => p.id === projectId);
-  
+
   // If project doesn't exist, show a message
   if (!project) {
     return (
@@ -44,7 +44,7 @@ const ProjectDetail = () => {
       </div>
     );
   }
-  
+
   // Format dates for display
   const formattedDate = (date: Date) => {
     return new Intl.DateTimeFormat('en-US', {
@@ -53,7 +53,7 @@ const ProjectDetail = () => {
       day: 'numeric'
     }).format(date);
   };
-  
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <Header title="Project Details" />
@@ -67,7 +67,7 @@ const ProjectDetail = () => {
             <ArrowLeft className="w-4 h-4 mr-1" />
             Back to Dashboard
           </Link>
-          
+
           {/* Project header */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -78,7 +78,7 @@ const ProjectDetail = () => {
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div>
                 <h1 className="text-2xl font-bold mb-2">{project.name}</h1>
-                
+
                 <div className="flex flex-col md:flex-row gap-3 md:gap-6 text-sm text-gray-600 dark:text-gray-400">
                   {project.description && (
                     <div className="flex items-center">
@@ -86,18 +86,18 @@ const ProjectDetail = () => {
                       <span>{project.description}</span>
                     </div>
                   )}
-                  
+
                   <div className="flex items-center">
                     <Calendar className="w-4 h-4 mr-1 flex-shrink-0" />
                     <span>Created {formattedDate(project.createdAt)}</span>
                   </div>
-                  
+
                   <div>
                     <span>Last updated {formatDistanceToNow(project.updatedAt, { addSuffix: true })}</span>
                   </div>
                 </div>
               </div>
-              
+
               {/* Action buttons */}
               <div className="flex gap-2">
                 <button
@@ -132,7 +132,7 @@ const ProjectDetail = () => {
               </div>
             </div>
           </motion.div>
-          
+
           {/* Project Stats */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -163,7 +163,7 @@ const ProjectDetail = () => {
               </div>
             </div>
           </motion.div>
-          
+
           {/* Project Analyses */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -180,7 +180,7 @@ const ProjectDetail = () => {
                 New Analysis
               </Link>
             </div>
-            
+
             {project.analyses.length > 0 ? (
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
                 <div className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -222,26 +222,26 @@ const ProjectDetail = () => {
               </div>
             )}
           </motion.div>
-          
+
           {/* Project Analytics */}
           {project.analyses.length > 0 && (
             <ProjectAnalytics />
           )}
         </div>
       </main>
-      
+
       {/* Loading overlay */}
       {isLoading && (
         <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-50">
           <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg">
             <div className="flex items-center space-x-3">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900 dark:border-white"></div>
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900 dark:border-white" />
               <p>Processing...</p>
             </div>
           </div>
         </div>
       )}
-      
+
       {/* Edit Project Modal */}
       {project && isEditModalOpen && (
         <EditProjectModal
@@ -250,7 +250,7 @@ const ProjectDetail = () => {
           project={project}
         />
       )}
-      
+
       {/* Delete Project Confirmation */}
       {project && isDeleteDialogOpen && (
         <DeleteProjectDialog

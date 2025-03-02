@@ -1,7 +1,7 @@
-import { motion } from "framer-motion";
-import { AlertTriangle, X } from "lucide-react";
 import { useProjects } from "@/context/ProjectsContext";
 import { toast } from "@/hooks/use-toast";
+import { motion } from "framer-motion";
+import { AlertTriangle, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface DeleteProjectDialogProps {
@@ -19,24 +19,24 @@ const DeleteProjectDialog = ({
 }: DeleteProjectDialogProps) => {
   const { deleteProject } = useProjects();
   const navigate = useNavigate();
-  
+
   const handleDelete = () => {
     deleteProject(projectId);
-    
+
     toast({
       title: "Project deleted",
       description: `"${projectName}" has been permanently deleted`,
     });
-    
+
     // Close the dialog
     onClose();
-    
+
     // Navigate back to home page
     navigate("/");
   };
-  
+
   if (!isOpen) return null;
-  
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <motion.div
@@ -52,13 +52,14 @@ const DeleteProjectDialog = ({
             <h2 className="text-xl font-semibold">Delete Project</h2>
           </div>
           <button
+            type="button"
             onClick={onClose}
             className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
           >
             <X size={20} />
           </button>
         </div>
-        
+
         <div className="p-6">
           <p className="mb-4 text-gray-700 dark:text-gray-300">
             Are you sure you want to delete <strong>"{projectName}"</strong>?
@@ -66,7 +67,7 @@ const DeleteProjectDialog = ({
           <p className="mb-6 text-sm text-gray-600 dark:text-gray-400">
             This action is permanent and cannot be undone. All analyses associated with this project will also be deleted.
           </p>
-          
+
           <div className="flex justify-end space-x-3">
             <button
               type="button"

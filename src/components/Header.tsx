@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
 import NewProjectModal from "./NewProjectModal";
 
 interface HeaderProps {
@@ -54,12 +54,12 @@ const Header = ({ title = "Floor Plan Analyzer" }: HeaderProps) => {
             <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-gray-900 to-gray-700 flex items-center justify-center mr-3">
               <span className="text-white font-medium text-lg">F</span>
             </div>
-            
+
             <h1 className="text-xl font-medium tracking-tight">
               {title}
             </h1>
           </motion.div>
-          
+
           <motion.nav
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -67,26 +67,26 @@ const Header = ({ title = "Floor Plan Analyzer" }: HeaderProps) => {
             className="flex items-center space-x-1 md:space-x-4"
           >
             <a
-              href="#"
+              href="/projects"
               className="text-sm text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md transition-colors duration-200 dark:text-gray-300 dark:hover:text-white"
             >
               Projects
             </a>
             <a
-              href="#"
+              href="/analysis"
               className="text-sm text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md transition-colors duration-200 dark:text-gray-300 dark:hover:text-white"
             >
               Analysis
             </a>
             <a
-              href="#"
+              href="/about"
               className="text-sm text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md transition-colors duration-200 dark:text-gray-300 dark:hover:text-white"
             >
               About
             </a>
-            
-            <div className="h-4 w-px bg-gray-300 dark:bg-gray-700 mx-1"></div>
-            
+
+            <div className="h-4 w-px bg-gray-300 dark:bg-gray-700 mx-1" />
+
             <button
               type="button"
               onClick={openNewProjectModal}
