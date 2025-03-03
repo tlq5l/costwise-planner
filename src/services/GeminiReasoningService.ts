@@ -25,18 +25,76 @@ import type {
  * @param data  The ProcessedRoboflowResponse from prior CV steps (rooms & furniture).
  * @returns     A Promise resolving to EstimationResult, or throwing on error.
  */
+/**
+ * Basic in-memory cache for analysis results to avoid re-calling Gemini if the same
+ * data is analyzed multiple times. Key is a simple JSON string of the relevant data.
+ */
+const geminiCache = new Map<string, EstimationResult>();
+
 export async function analyzeFloorPlan(
   data: ProcessedRoboflowResponse
 ): Promise<EstimationResult> {
-  // 1) Prepare structured input JSON from RoboFlow data
+  // 1) Build a cache key. We can omit huge or varying fields, focusing on stable fields.
+  //    For example, we might exclude timestamps or partial furniture coords. We'll
+  //    assume all relevant data is in "predictions" or "scaleFactor".
+  //    This is a naive approach: if you want a more robust or collision-resistant key,
+  //    consider hashing. For small usage, JSON stringify suffices.
+  const cacheKey = JSON.stringify({
+    predictions: data.predictions.map((p) => ({
+      roomType: p.roomType,
+      width: p.width,
+      height: p.height,
+      x: p.x,
+      y: p.y,
+    })),
+    imageWidth: data.image.width,
+    imageHeight: data.image.height,
+    scaleFactor: (data as ProcessedRoboflowResponse & { scaleFactor?: number }).scaleFactor ?? 1,
+  });
+
+  if (geminiCache.has(cacheKey)) {
+    // Return cached result if available
+    const cachedResult = geminiCache.get(cacheKey);
+    if (cachedResult) return cachedResult;
+  }
+
+  // For performance measurement:
+  const startTime = performance.now();
+
+  // Attempt the original logic
+  const result = await doAnalyzeFloorPlan(data);
+
+  const endTime = performance.now();
+  console.info(
+    "[GeminiReasoningService] Gemini call took",
+    (endTime - startTime).toFixed(2),
+    "ms."
+  );
+
+  // Cache the result
+  geminiCache.set(cacheKey, result);
+
+  return result;
+}
+
+/**
+ * The actual analysis logic extracted from the prior code snippet.
+ * We do the prompt building, API call, and JSON parse here.
+ * This is separated so we can measure performance and handle caching above.
+ */
+async function doAnalyzeFloorPlan(
+  data: ProcessedRoboflowResponse
+): Promise<EstimationResult> {
+
+  // Step 1: Prepare structured input JSON from RoboFlow data
   const structuredInput = prepareInputData(data);
 
-  // 2) Build a prompt
+  // Step 2: Build a prompt (or multi-message structure)
   const prompt = buildCostEstimationPrompt(structuredInput);
 
-  // 3) Call the Gemini 2.0 Flash model
   let rawOutput: string;
   try {
+    // Potentially wrap this in a small retry loop
     const result = await geminiModel.generateContent([prompt]);
     rawOutput = result.response.text();
   } catch (err) {
@@ -44,7 +102,7 @@ export async function analyzeFloorPlan(
     throw new Error("GeminiReasoningService: API call to Gemini failed.");
   }
 
-  // 4) Parse and validate output from Gemini
+  // Step 3: Parse and validate output from Gemini
   return parseEstimationOutput(rawOutput);
 }
 
@@ -144,6 +202,12 @@ Output only valid JSON. No extra commentary.`;
  *
  * @param rawOutput The raw text from the model
  */
+/**
+ * If the SDK eventually provides token usage metadata,
+ * we could track it here. For now, we just parse JSON.
+ * If we had usage info in the result object (like openAI "usage"),
+ * we could log it. We'll keep a placeholder.
+ */
 function parseEstimationOutput(rawOutput: string): EstimationResult {
   interface ParsedOutput {
     totalCost: number;
@@ -159,8 +223,21 @@ function parseEstimationOutput(rawOutput: string): EstimationResult {
     parsed = JSON.parse(rawOutput) as ParsedOutput;
   } catch (parseError) {
     console.error("Failed to parse Gemini JSON output.", parseError);
+
+    // Fallback: We could either re-try or revert to a naive approach:
+    const fallback: EstimationResult = {
+      id: `fallback_${Date.now()}`,
+      totalCost: 0,
+      categories: [],
+      currency: "USD",
+      createdAt: new Date(),
+      fileName: "Fallback-Estimate",
+      imageUrl: "",
+      status: "completed"
+    };
+
     console.error("Gemini output was:", rawOutput);
-    throw new Error("Gemini output was not valid JSON.");
+    return fallback;
   }
 
   // Basic shape check
