@@ -2,7 +2,7 @@ import { useProjects } from "@/context/ProjectsContext";
 import { toast } from "@/hooks/use-toast";
 import type { ClassifiedRoom, FurnitureItem, RoomAnalysisResult, UploadStatus } from "@/types";
 import { AnimatePresence, motion } from "framer-motion";
-import { Check, FolderPlus, RefreshCw, Scan, Upload, X } from "lucide-react";
+import { Check, FolderPlus, RefreshCw, Scan, Upload, X, Zap } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import NewProjectModal from "./NewProjectModal";
 
@@ -349,14 +349,20 @@ const FileUploader = ({ onAnalysisComplete }: FileUploaderProps) => {
         {/* Progress bar */}
         <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 py-2 px-4">
           <div className="flex items-center text-white text-sm">
-            <Scan className="animate-pulse mr-2 w-4 h-4" />
+            {/* Conditionally show different icons depending on status */}
+            {uploadStatus === "geminiReasoning" ? (
+              <Zap className="animate-pulse mr-2 w-4 h-4 text-yellow-300" />
+            ) : (
+              <Scan className="animate-pulse mr-2 w-4 h-4" />
+            )}
+
             <span>
               {uploadStatus === "roomDetection"
                 ? "Analyzing rooms..."
                 : uploadStatus === "furnitureDetection"
                   ? "Detecting furniture..."
                   : uploadStatus === "geminiReasoning"
-                    ? "Final AI reasoning..."
+                    ? "Refining cost estimate..."
                     : "Processing..."}
             </span>
             <div className="ml-auto">

@@ -30,6 +30,10 @@ const RoomAnalysisResult = ({ result }: RoomAnalysisResultProps) => {
   const [isExpanded, setIsExpanded] = useState(true);
   const [activeTab, setActiveTab] = useState<'rooms' | 'furniture'>('rooms');
   const [combinedAnalysis, setCombinedAnalysis] = useState<CombinedFloorPlanAnalysis | null>(null);
+  const [isAiExplanationOpen, setIsAiExplanationOpen] = useState(false);
+  const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
+  const [showFeedbackBox, setShowFeedbackBox] = useState(false);
+  const [feedbackText, setFeedbackText] = useState('');
 
   // Process room detection data to include classified rooms if needed
   const processedRoomDetection = useMemo(() => {
@@ -91,6 +95,27 @@ const RoomAnalysisResult = ({ result }: RoomAnalysisResultProps) => {
       .filter(([_, count]) => count > 0)
       .map(([type, count]) => `${count} ${type}${count > 1 ? 's' : ''}`)
       .join(', ');
+  };
+
+  // Add missing functions for feedback
+  const handleFeedback = (type: "yes" | "no") => {
+    // Implement feedback functionality
+    setFeedbackSubmitted(true);
+    toast({
+      title: "Thank you for your feedback",
+      description: "We appreciate your input to improve our analysis.",
+    });
+  };
+
+  const handleFeedbackSubmit = () => {
+    // Implement feedback submission
+    if (feedbackText.trim()) {
+      setFeedbackSubmitted(true);
+      toast({
+        title: "Feedback submitted",
+        description: "Thank you for your detailed feedback.",
+      });
+    }
   };
 
   return (
@@ -234,52 +259,130 @@ const RoomAnalysisResult = ({ result }: RoomAnalysisResultProps) => {
               </div>
 
               <div className="w-full md:w-1/2 flex flex-col">
+                {/* Collapsible AI Analysis Section */}
                 <div className="rounded-lg bg-gray-50 p-5 h-full dark:bg-gray-700/50">
-                  <h3 className="text-lg font-medium mb-3">
-                    AI Analysis Notes
-                  </h3>
-                  <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed">
-                    The floor plan shows {formatRoomDetection()}. The total
-                    estimated area is approximately{" "}
-                    {Math.round(result.totalArea)} sq.ft.
-                    <br />
-                    <br />
-                    {furnitureDetection && furnitureDetection.predictions.length > 0 && (
-                      <>
-                        The analysis detected {formatFurnitureDetection()} in the floor plan.
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-lg font-medium">
+                      AI Analysis Notes
+                    </h3>
+                    {/* Collapsible Toggle */}
+                    <button
+                      type="button"
+                      onClick={() => setIsAiExplanationOpen(prev => !prev)}
+                      className="px-2 py-1 text-xs font-medium bg-gray-200 rounded hover:bg-gray-300 dark:bg-gray-800 dark:hover:bg-gray-700"
+                    >
+                      {isAiExplanationOpen ? "Hide" : "Show"} Details
+                    </button>
+                  </div>
+
+                  {isAiExplanationOpen && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      transition={{ duration: 0.3 }}
+                      className="overflow-hidden"
+                    >
+                      <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed">
+                        The floor plan shows {formatRoomDetection()}. The total
+                        estimated area is approximately{" "}
+                        {Math.round(result.totalArea)} sq.ft.
                         <br />
                         <br />
-                      </>
-                    )}
-                    Each room has been identified and measured. You can see detailed
-                    measurements for each room in the breakdown below.
-                    This information can be useful for planning furniture layouts,
-                    flooring materials, paint quantities, and HVAC requirements.
-                  </p>
+                        {furnitureDetection && furnitureDetection.predictions.length > 0 && (
+                          <>
+                            The analysis detected {formatFurnitureDetection()} in the floor plan.
+                            <br />
+                            <br />
+                          </>
+                        )}
+                        Each room has been identified and measured. You can see detailed
+                        measurements for each room in the breakdown below.
+                        This information can be useful for planning furniture layouts,
+                        flooring materials, paint quantities, and HVAC requirements.
+                      </p>
 
-                  {combinedAnalysis && (
-                    <div className="mt-4">
-                      <h4 className="font-medium mb-2">Details by Room Type:</h4>
-                      <ul className="space-y-1 text-sm text-gray-600 dark:text-gray-300">
-                        {Object.entries(combinedAnalysis.roomFurnitureCounts).map(([roomId, furnitureCounts]) => {
-                          const room = combinedAnalysis.rooms.find(r => r.detection_id === roomId);
-                          if (!room) return null;
+                      {combinedAnalysis && (
+                        <div className="mt-4">
+                          <h4 className="font-medium mb-2">Details by Room Type:</h4>
+                          <ul className="space-y-1 text-sm text-gray-600 dark:text-gray-300">
+                            {Object.entries(combinedAnalysis.roomFurnitureCounts).map(([roomId, furnitureCounts]) => {
+                              const room = combinedAnalysis.rooms.find(r => r.detection_id === roomId);
+                              if (!room) return null;
 
-                          // Get furniture items in this room
-                          const furnitureItems = Object.entries(furnitureCounts)
-                            .filter(([_, count]) => count > 0)
-                            .map(([type, count]) => `${count} ${type}${count > 1 ? 's' : ''}`);
+                              // Get furniture items in this room
+                              const furnitureItems = Object.entries(furnitureCounts)
+                                .filter(([_, count]) => count > 0)
+                                .map(([type, count]) => `${count} ${type}${count > 1 ? 's' : ''}`);
 
-                          if (furnitureItems.length === 0) return null;
+                              if (furnitureItems.length === 0) return null;
 
-                          return (
-                            <li key={roomId} className="py-1">
-                              <span className="font-medium capitalize">{room.roomType}</span>: {furnitureItems.join(', ')}
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    </div>
+                              return (
+                                <li key={roomId} className="py-1">
+                                  <span className="font-medium capitalize">{room.roomType}</span>: {furnitureItems.join(', ')}
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        </div>
+                      )}
+
+                      {/* Simple Feedback Form */}
+                      <div className="mt-6 border-t pt-4">
+                        <h4 className="text-sm font-semibold mb-2">
+                          Was this analysis accurate?
+                        </h4>
+                        {!feedbackSubmitted ? (
+                          <div className="flex items-center gap-3">
+                            <button
+                              type="button"
+                              onClick={() => handleFeedback("yes")}
+                              className="px-3 py-1 text-sm font-medium bg-green-500 text-white rounded hover:bg-green-600"
+                            >
+                              Yes
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleFeedback("no")}
+                              className="px-3 py-1 text-sm font-medium bg-red-500 text-white rounded hover:bg-red-600"
+                            >
+                              No
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setShowFeedbackBox(true)}
+                              className="px-3 py-1 text-sm font-medium bg-gray-200 text-gray-800 rounded hover:bg-gray-300 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+                            >
+                              Provide Comments
+                            </button>
+                          </div>
+                        ) : (
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            Thanks for your feedback!
+                          </p>
+                        )}
+
+                        {showFeedbackBox && !feedbackSubmitted && (
+                          <div className="mt-3">
+                            <textarea
+                              rows={3}
+                              value={feedbackText}
+                              onChange={(e) => setFeedbackText(e.target.value)}
+                              className="w-full p-2 border border-gray-300 rounded-md dark:border-gray-600 dark:bg-gray-800 text-sm"
+                              placeholder="Let us know what was wrong or how we can improve..."
+                            />
+                            <div className="flex justify-end mt-2">
+                              <button
+                                type="button"
+                                onClick={() => handleFeedbackSubmit()}
+                                className="px-3 py-1 text-sm font-medium bg-blue-500 text-white rounded hover:bg-blue-600"
+                              >
+                                Submit
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
                   )}
                 </div>
               </div>
