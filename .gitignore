@@ -28,3 +28,4 @@ dist-ssr
 .env.*
 !.env.example
 tsconfig.app.tsbuildinfo
+tsconfig.node.tsbuildinfo
