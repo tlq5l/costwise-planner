@@ -1,14 +1,16 @@
 import DeleteProjectDialog from "@/components/DeleteProjectDialog";
 import EditProjectModal from "@/components/EditProjectModal";
 import Header from "@/components/Header";
-import ProjectAnalytics from "@/components/ProjectAnalytics";
 import { useProjects } from "@/context/ProjectsContext";
 import { toast } from "@/hooks/use-toast";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow } from "date-fns/formatDistanceToNow";
 import { motion } from "framer-motion";
 import { ArrowLeft, Calendar, Download, Edit, MapPin, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { Suspense, lazy, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+
+// Lazy load the analytics component
+const ProjectAnalytics = lazy(() => import("@/components/ProjectAnalytics"));
 
 const ProjectDetail = () => {
   const { projectId } = useParams<{ projectId: string }>();
@@ -225,7 +227,9 @@ const ProjectDetail = () => {
 
           {/* Project Analytics */}
           {project.analyses.length > 0 && (
-            <ProjectAnalytics />
+            <Suspense>
+              <ProjectAnalytics />
+            </Suspense>
           )}
         </div>
       </main>

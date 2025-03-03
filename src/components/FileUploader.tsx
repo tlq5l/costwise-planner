@@ -1,8 +1,5 @@
 import { useProjects } from "@/context/ProjectsContext";
 import { toast } from "@/hooks/use-toast";
-import { detectFurnitureWithAnimation } from "@/lib/furnitureDetection";
-import { detectRoomsWithAnimation } from "@/lib/roboflow";
-import { processFloorPlan } from "@/lib/roomAnalysis";
 import type { ClassifiedRoom, FurnitureItem, RoomAnalysisResult, UploadStatus } from "@/types";
 import { AnimatePresence, motion } from "framer-motion";
 import { Check, FolderPlus, RefreshCw, Scan, Upload, X } from "lucide-react";
@@ -174,6 +171,9 @@ const FileUploader = ({ onAnalysisComplete }: FileUploaderProps) => {
       // Room detection phase with animation
       setUploadStatus("roomDetection");
 
+      // Dynamically import the room detection module
+      const { detectRoomsWithAnimation } = await import("@/lib/animations/roomAnimations");
+
       // Start the room detection with animation
       const roomResults = await detectRoomsWithAnimation(imageBase64);
 
@@ -188,11 +188,14 @@ const FileUploader = ({ onAnalysisComplete }: FileUploaderProps) => {
           // Room detection complete, proceed to furniture detection
           setUploadStatus("furnitureDetection");
 
+          // Dynamically import the furniture detection module
+          const { detectFurnitureWithAnimation } = await import("@/lib/animations/furnitureAnimations");
+
           // Start furniture detection with animation
           const furnitureResults = await detectFurnitureWithAnimation(imageBase64);
 
           // Animation loop to show furniture being detected
-          const animateFurnitureDetection = () => {
+          const animateFurnitureDetection = async () => {
             const nextItem = furnitureResults.getNextItem();
             if (nextItem) {
               setDetectedFurniture(prev => [...prev, nextItem]);
@@ -201,6 +204,9 @@ const FileUploader = ({ onAnalysisComplete }: FileUploaderProps) => {
             } else {
               // Furniture detection complete, proceed to Gemini reasoning
               setUploadStatus("geminiReasoning");
+
+              // Dynamically import the floor plan processor
+              const { processFloorPlan } = await import("@/lib/analysis/floorPlanProcessor");
 
               // Now call our final process (which includes Gemini in the pipeline).
               processFloorPlan(file)

@@ -1,5 +1,6 @@
-import React from "react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import type React from "react";
+import { useEffect, useState } from "react";
 
 /**
  * ProjectAnalytics Component
@@ -11,86 +12,143 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
  * and scheduling or timeline data from the server or database.
  */
 export default function ProjectAnalytics() {
-  // Placeholder data for the "Estimated vs. Actual Cost" chart
-  const costData = [
-    { name: "Foundation", Estimated: 10000, Actual: 9500 },
-    { name: "Framing", Estimated: 15000, Actual: 15500 },
-    { name: "Finishes", Estimated: 8000, Actual: 9000 },
-    { name: "Plumbing", Estimated: 6000, Actual: 6200 },
-    { name: "Electrical", Estimated: 7000, Actual: 6800 },
-  ];
+	// Use Record type with string index signature for components
+	const [RechartsComponents, setRechartsComponents] = useState<Record<
+		string,
+		React.ComponentType<any>
+	> | null>(null);
 
-  // Placeholder data for "Material Usage vs. Surplus" (just text summary here)
-  const materialUsage = [
-    { material: "Concrete", used: "90%", surplus: "10%" },
-    { material: "Lumber", used: "95%", surplus: "5%" },
-    { material: "Drywall", used: "80%", surplus: "20%" },
-    { material: "Wiring", used: "100%", surplus: "0%" },
-  ];
+	useEffect(() => {
+		const loadRecharts = async () => {
+			try {
+				const {
+					BarChart,
+					Bar,
+					XAxis,
+					YAxis,
+					CartesianGrid,
+					Tooltip,
+					Legend,
+					ResponsiveContainer,
+				} = await import("recharts");
 
-  // Placeholder timeline steps
-  const timelineSteps = [
-    { step: "Foundation Complete", date: "Sep 20" },
-    { step: "Framing & Roof", date: "Oct 10" },
-    { step: "Rough-ins", date: "Oct 20" },
-    { step: "Finishes", date: "Nov 5" },
-    { step: "Inspection & Handover", date: "Nov 25" },
-  ];
+				setRechartsComponents({
+					BarChart,
+					Bar,
+					XAxis,
+					YAxis,
+					CartesianGrid,
+					Tooltip,
+					Legend,
+					ResponsiveContainer,
+				});
+			} catch (error) {
+				console.error("Error loading recharts:", error);
+			}
+		};
 
-  return (
-    <div className="w-full mt-8 bg-white rounded-md shadow-sm p-6 dark:bg-gray-800 dark:border-gray-700 border border-gray-100">
-      <h3 className="text-xl font-medium mb-4">Project Analytics &amp; Insights</h3>
+		loadRecharts();
+	}, []);
 
-      {/* Estimated vs Actual Cost Chart */}
-      <div className="mb-8">
-        <h4 className="text-lg font-semibold mb-3">Estimated vs. Actual Cost</h4>
-        <div className="w-full h-64 md:h-72">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={costData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="Estimated" fill="#8884d8" />
-              <Bar dataKey="Actual" fill="#82ca9d" />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
+	// Placeholder data for the "Estimated vs. Actual Cost" chart
+	const costData = [
+		{ name: "Foundation", Estimated: 10000, Actual: 9500 },
+		{ name: "Framing", Estimated: 15000, Actual: 15500 },
+		{ name: "Finishes", Estimated: 8000, Actual: 9000 },
+		{ name: "Plumbing", Estimated: 6000, Actual: 6200 },
+		{ name: "Electrical", Estimated: 7000, Actual: 6800 },
+	];
 
-      {/* Material Usage vs Surplus */}
-      <div className="mb-8">
-        <h4 className="text-lg font-semibold mb-3">Material Usage vs. Surplus</h4>
-        <ul className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
-          {materialUsage.map((mat, index) => (
-            <li key={index} className="flex justify-between bg-gray-50 dark:bg-gray-700/40 p-2 rounded">
-              <span className="font-medium">{mat.material}</span>
-              <span className="mx-2">Used: {mat.used}</span>
-              <span>Surplus: {mat.surplus}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
+	// Placeholder data for the "Material Usage vs. Surplus" chart
+	const materialData = [
+		{ name: "Concrete", Ordered: 100, Used: 94 },
+		{ name: "Lumber", Ordered: 200, Used: 190 },
+		{ name: "Drywall", Ordered: 150, Used: 140 },
+		{ name: "Paint", Ordered: 80, Used: 74 },
+		{ name: "Fixtures", Ordered: 30, Used: 30 },
+	];
 
-      {/* Project Timeline (Simple placeholders, not an actual Gantt) */}
-      <div className="mb-4">
-        <h4 className="text-lg font-semibold mb-3">Project Timeline (Sample)</h4>
-        <div className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
-          {timelineSteps.map((item, idx) => (
-            <div key={idx} className="flex items-center space-x-3">
-              <div className="w-2 h-2 rounded-full bg-indigo-500 flex-shrink-0"></div>
-              <div className="flex justify-between w-full">
-                <span>{item.step}</span>
-                <span className="text-gray-500 dark:text-gray-400">{item.date}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-        <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
-          (This timeline is a placeholder. Integrate a real Gantt chart or scheduling data for production use.)
-        </p>
-      </div>
-    </div>
-  );
+	if (!RechartsComponents) {
+		return (
+			<div className="p-6 bg-white rounded-lg shadow-md mb-6">
+				Loading charts...
+			</div>
+		);
+	}
+
+	const {
+		BarChart,
+		Bar,
+		XAxis,
+		YAxis,
+		CartesianGrid,
+		Tooltip,
+		Legend,
+		ResponsiveContainer,
+	} = RechartsComponents;
+
+	return (
+		<div className="p-6 bg-white rounded-lg shadow-md mb-6">
+			<h3 className="text-xl font-semibold mb-4">Project Analytics</h3>
+
+			{/* Cost Comparison Chart */}
+			<div className="mb-6">
+				<h4 className="text-lg font-medium mb-3">Cost Comparison</h4>
+				<div className="h-80">
+					<ResponsiveContainer width="100%" height="100%">
+						<BarChart data={costData}>
+							<CartesianGrid strokeDasharray="3 3" />
+							<XAxis dataKey="name" />
+							<YAxis />
+							<Tooltip formatter={(value) => `$${value}`} />
+							<Legend />
+							<Bar dataKey="Estimated" fill="#8884d8" />
+							<Bar dataKey="Actual" fill="#82ca9d" />
+						</BarChart>
+					</ResponsiveContainer>
+				</div>
+			</div>
+
+			{/* Material Usage Chart */}
+			<div className="mb-6">
+				<h4 className="text-lg font-medium mb-3">Material Usage</h4>
+				<div className="h-80">
+					<ResponsiveContainer width="100%" height="100%">
+						<BarChart data={materialData}>
+							<CartesianGrid strokeDasharray="3 3" />
+							<XAxis dataKey="name" />
+							<YAxis />
+							<Tooltip />
+							<Legend />
+							<Bar dataKey="Ordered" fill="#ffc658" />
+							<Bar dataKey="Used" fill="#ff8042" />
+						</BarChart>
+					</ResponsiveContainer>
+				</div>
+			</div>
+
+			{/* Project Timeline (Text Summary) */}
+			<div>
+				<h4 className="text-lg font-medium mb-3">Project Timeline</h4>
+				<div className="border-l-2 border-gray-300 pl-4 space-y-3">
+					<div>
+						<p className="font-medium">Project Start</p>
+						<p className="text-gray-600">April 15, 2023</p>
+					</div>
+					<div>
+						<p className="font-medium">Foundation Complete</p>
+						<p className="text-gray-600">May 2, 2023</p>
+					</div>
+					<div>
+						<p className="font-medium">Framing Complete</p>
+						<p className="text-gray-600">May 30, 2023</p>
+					</div>
+					<div>
+						<p className="font-medium">Projected Completion</p>
+						<p className="text-gray-600">August 25, 2023</p>
+					</div>
+				</div>
+			</div>
+		</div>
+	);
 }
