@@ -1,8 +1,8 @@
 import { geminiModel } from "@/lib/geminiClient";
 import type {
-  EstimationCategory,
-  EstimationResult,
-  ProcessedRoboflowResponse
+    EstimationCategory,
+    EstimationResult,
+    ProcessedRoboflowResponse
 } from "@/types";
 
 /**
@@ -28,27 +28,24 @@ import type {
 export async function analyzeFloorPlan(
   data: ProcessedRoboflowResponse
 ): Promise<EstimationResult> {
-  // 1) Prepare structured input for the model.
+  // 1) Prepare structured input JSON from RoboFlow data
   const structuredInput = prepareInputData(data);
 
-  // 2) Build prompt. If you want multi-step reasoning, you can do it here or
-  //    keep it single-step with a well-crafted prompt.
+  // 2) Build a prompt
   const prompt = buildCostEstimationPrompt(structuredInput);
 
-  // 3) Call Gemini 2.0 Flash to get the advanced cost breakdown.
-  //    Could be adapted for multi-step calls if needed.
+  // 3) Call the Gemini 2.0 Flash model
   let rawOutput: string;
   try {
-    const result = await geminiModel.generateContent(prompt);
+    const result = await geminiModel.generateContent([prompt]);
     rawOutput = result.response.text();
   } catch (err) {
     console.error("Gemini API call failed:", err);
     throw new Error("GeminiReasoningService: API call to Gemini failed.");
   }
 
-  // 4) Parse and validate the JSON output from Gemini.
-  const estimationResult = parseEstimationOutput(rawOutput);
-  return estimationResult;
+  // 4) Parse and validate output from Gemini
+  return parseEstimationOutput(rawOutput);
 }
 
 /**

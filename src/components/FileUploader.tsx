@@ -1,3 +1,4 @@
+import { useProjects } from "@/context/ProjectsContext";
 import { toast } from "@/hooks/use-toast";
 import { detectFurnitureWithAnimation } from "@/lib/furnitureDetection";
 import { detectRoomsWithAnimation } from "@/lib/roboflow";
@@ -6,7 +7,6 @@ import type { ClassifiedRoom, FurnitureItem, RoomAnalysisResult, UploadStatus } 
 import { AnimatePresence, motion } from "framer-motion";
 import { Check, FolderPlus, RefreshCw, Scan, Upload, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useProjects } from "@/context/ProjectsContext";
 import NewProjectModal from "./NewProjectModal";
 
 interface FileUploaderProps {
@@ -125,7 +125,7 @@ const FileUploader = ({ onAnalysisComplete }: FileUploaderProps) => {
     const newProject = addProject(projectData);
     setSelectedProjectId(newProject.id);
     setIsNewProjectModalOpen(false);
-    
+
     toast({
       title: "Project created",
       description: `New project "${projectData.name}" created successfully`,
@@ -199,13 +199,14 @@ const FileUploader = ({ onAnalysisComplete }: FileUploaderProps) => {
               // Continue animating furniture
               setTimeout(animateFurnitureDetection, 500);
             } else {
-              // Furniture detection complete, proceed to processing
-              setUploadStatus("processing");
+              // Furniture detection complete, proceed to Gemini reasoning
+              setUploadStatus("geminiReasoning");
 
-              // Process the floor plan using room analysis
-              processFloorPlan(file).then(result => {
-                // Update status and notify parent component
-                setUploadStatus("success");
+              // Now call our final process (which includes Gemini in the pipeline).
+              processFloorPlan(file)
+                .then(result => {
+                  // Update status and notify parent component
+                  setUploadStatus("success");
 
                 // IMPORTANT: Update the UI with the enhanced room and furniture classifications
                 // This ensures we're using the properly enhanced room classifications
@@ -348,7 +349,9 @@ const FileUploader = ({ onAnalysisComplete }: FileUploaderProps) => {
                 ? "Analyzing rooms..."
                 : uploadStatus === "furnitureDetection"
                   ? "Detecting furniture..."
-                  : "Processing..."}
+                  : uploadStatus === "geminiReasoning"
+                    ? "Final AI reasoning..."
+                    : "Processing..."}
             </span>
             <div className="ml-auto">
               {detectedRooms.length} rooms, {detectedFurniture.length} items

@@ -19,7 +19,7 @@ export interface Project {
   updatedAt: Date;
 }
 
-export type UploadStatus = 'idle' | 'uploading' | 'processing' | 'roomDetection' | 'furnitureDetection' | 'success' | 'error';
+export type UploadStatus = 'idle' | 'uploading' | 'processing' | 'roomDetection' | 'furnitureDetection' | 'geminiReasoning' | 'success' | 'error';
 
 export interface RoboflowPoint {
   x: number;
