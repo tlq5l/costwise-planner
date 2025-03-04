@@ -283,7 +283,7 @@ const FileUploader = ({ onAnalysisComplete }: FileUploaderProps) => {
     }
 
     return (
-      <div className="relative mt-4 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden" style={{ minHeight: '400px', height: 'auto' }}>
+      <div className="relative mt-4 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden w-full" style={{ minHeight: '600px', height: 'auto' }}>
         <img
           src={previewUrl}
           alt="Floor plan preview"

@@ -245,8 +245,8 @@ const RoomAnalysisResult = ({ result }: RoomAnalysisResultProps) => {
               )}
             </div>
 
-            <div className="flex flex-col md:flex-row gap-6 mb-6">
-              <div className="w-full md:w-1/2 bg-gray-100 rounded-lg overflow-hidden dark:bg-gray-700" style={{ minHeight: '500px', height: 'auto' }}>
+            <div className="flex flex-col gap-6 mb-6">
+              <div className="w-full bg-gray-100 rounded-lg overflow-hidden dark:bg-gray-700" style={{ minHeight: '700px', height: 'auto' }}>
                 {result.imageUrl && processedRoomDetection && (
                   <div className="relative w-full h-full">
                     <FloorPlanViewer
@@ -258,7 +258,7 @@ const RoomAnalysisResult = ({ result }: RoomAnalysisResultProps) => {
                 )}
               </div>
 
-              <div className="w-full md:w-1/2 flex flex-col">
+              <div className="w-full flex flex-col">
                 {/* Collapsible AI Analysis Section */}
                 <div className="rounded-lg bg-gray-50 p-5 h-full dark:bg-gray-700/50">
                   <div className="flex items-center justify-between mb-3">

@@ -183,7 +183,7 @@ const FloorPlanViewer = ({
 	return (
 		<div
 			className="relative w-full h-full rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800"
-			style={{ minHeight: "500px" }}
+			style={{ minHeight: "850px" }}
 		>
 			{/* Control panel */}
 			<div className="absolute top-4 left-4 z-20 bg-white dark:bg-gray-900 rounded-lg shadow-md p-2 space-y-2">
@@ -482,7 +482,7 @@ const FloorPlanViewer = ({
 				{({ zoomIn, zoomOut, setTransform, ...rest }) => (
 					<React.Fragment>
 						<TransformComponent
-							wrapperClass="w-full h-full"
+							wrapperClass="w-full h-full px-4 pt-16 pb-32"
 							contentClass="w-full h-full"
 						>
 							<div
@@ -531,7 +531,7 @@ const FloorPlanViewer = ({
 								<img
 									src={imageUrl}
 									alt="Floor plan"
-									className="w-full h-full object-contain"
+									className="max-w-full max-h-full object-contain"
 								/>
 
 								{/* SVG overlay for room visualization */}

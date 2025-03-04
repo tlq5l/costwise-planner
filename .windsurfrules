@@ -1,0 +1,1 @@
+If there're package that you want to install, please use the command pnpm add instead of modify the package.json . Careful to not break any existing critical functionalities. We use 'zsh' and pnpm as package manager in this M4 MacOS (ARM). Always use sequential-thinking (model context protocol) server tool.
