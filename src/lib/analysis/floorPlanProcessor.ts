@@ -43,12 +43,14 @@ export const processFloorPlan = async (
 
       // Fetch furniture detection if not provided
       if (!furnitureDetection) {
-        furnitureDetection = await detectFurnitureFromBase64(base64Image);
+        const fetchedFurnitureDetection = await detectFurnitureFromBase64(base64Image);
+        furnitureDetection = fetchedFurnitureDetection;
       }
 
       // Fetch room detection if not provided
       if (!roomDetection) {
-        roomDetection = await detectAndClassifyRoomsFromBase64(base64Image);
+        const fetchedRoomDetection = await detectAndClassifyRoomsFromBase64(base64Image);
+        roomDetection = fetchedRoomDetection;
       }
     }
 
@@ -90,7 +92,7 @@ export const processFloorPlan = async (
       const geminiResult = await analyzeFloorPlan(enhancedRoomDetection);
 
       // Check if this is already a fallback result from the Gemini service
-      if (geminiResult.id && geminiResult.id.includes('fallback_')) {
+      if (geminiResult?.id?.includes('fallback_')) {
         // It's already a fallback result, so make sure we preserve that ID type
         return {
           ...geminiResult,

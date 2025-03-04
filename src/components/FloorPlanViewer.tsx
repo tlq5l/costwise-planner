@@ -1,5 +1,7 @@
+import { useUnitSystem } from "@/context/UnitSystemContext";
 import { FURNITURE_COLORS } from "@/lib/furnitureDetection";
-import { ROOM_COLORS, formatVietnameseMeasurement } from "@/lib/roomClassifier";
+import { ROOM_COLORS } from "@/lib/roomClassifier";
+import { formatArea, formatLength } from "@/lib/utils/unitConversions";
 import type {
     ClassifiedRoom,
     FurnitureDetectionResponse,
@@ -43,6 +45,7 @@ const FloorPlanViewer = ({
 	scaleFactor,
 	onScaleFactorChange,
 }: FloorPlanViewerProps) => {
+	const { unitSystem } = useUnitSystem();
 	// Initialize state for rooms from room detection
 	const [rooms, setRooms] = useState<(ClassifiedRoom & {
 		isVisible: boolean;
@@ -51,7 +54,7 @@ const FloorPlanViewer = ({
 	})[]>([]);
 
 	useEffect(() => {
-		if (roomDetection && roomDetection.predictions) {
+		if (roomDetection?.predictions) {
 			// Set rooms from enhanced room detection that already incorporates furniture context
 			setRooms(roomDetection.predictions.map(room => ({
 				...room,
@@ -352,21 +355,29 @@ const FloorPlanViewer = ({
 			{/* Calibration Panel */}
 			{isCalibrationMode && (
 				<div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-30 bg-white dark:bg-gray-900 rounded-lg shadow-md p-4 max-w-xs">
-					<h3 className="text-sm font-medium mb-2">Hiệu chuẩn đo lường</h3>
+					<h3 className="text-sm font-medium mb-2">
+						{unitSystem === "metric" ? "Hiệu chuẩn đo lường" : "Calibration"}
+					</h3>
 
 					<p className="text-xs text-gray-600 dark:text-gray-400 mb-3">
 						{!calibrationPoints.start
-							? "Nhấp vào bản vẽ để đánh dấu điểm bắt đầu của đoạn thẳng tham chiếu."
+							? unitSystem === "metric"
+								? "Nhấp vào bản vẽ để đánh dấu điểm bắt đầu của đoạn thẳng tham chiếu."
+								: "Click on the drawing to mark the start point of a reference line."
 							: !calibrationPoints.end
-								? "Nhấp vào bản vẽ để đánh dấu điểm kết thúc."
-								: "Nhập chiều dài thực tế của đoạn thẳng này."}
+								? unitSystem === "metric"
+									? "Nhấp vào bản vẽ để đánh dấu điểm kết thúc."
+									: "Click to mark the end point."
+								: unitSystem === "metric"
+									? "Nhập chiều dài thực tế của đoạn thẳng này."
+									: "Enter the actual length of this line."}
 					</p>
 
 					{calibrationPoints.start && calibrationPoints.end && (
 						<div className="flex flex-col gap-2">
 							<div className="flex items-center">
 								<label htmlFor="calibration-length" className="text-xs mr-2">
-									Chiều dài:
+									{unitSystem === "metric" ? "Chiều dài:" : "Length:"}
 								</label>
 								<input
 									id="calibration-length"
@@ -379,7 +390,7 @@ const FloorPlanViewer = ({
 									}
 									className="flex-1 px-2 py-1 text-xs rounded border border-gray-300 dark:border-gray-700 dark:bg-gray-800"
 								/>
-								<span className="ml-1 text-xs">m</span>
+								<span className="ml-1 text-xs">{unitSystem === "metric" ? "m" : "ft"}</span>
 							</div>
 
 							<button
@@ -397,8 +408,13 @@ const FloorPlanViewer = ({
 											calibrationPoints.end.y - calibrationPoints.start.y;
 										const pixelDist = Math.sqrt(dx * dx + dy * dy);
 
+										// Convert from imperial to metric if needed
+										const lengthInMeters = unitSystem === "imperial"
+						? calibrationLength * 0.3048 // Convert feet to meters
+						: calibrationLength;
+
 										// Calculate new scale factor (meters per pixel)
-										const newScaleFactor = calibrationLength / pixelDist;
+										const newScaleFactor = lengthInMeters / pixelDist;
 										onScaleFactorChange(newScaleFactor);
 
 										// Reset calibration mode
@@ -408,7 +424,7 @@ const FloorPlanViewer = ({
 								}}
 								className="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
 							>
-								Áp dụng hiệu chuẩn
+								{unitSystem === "metric" ? "Áp dụng hiệu chuẩn" : "Apply Calibration"}
 							</button>
 
 							<button
@@ -418,7 +434,7 @@ const FloorPlanViewer = ({
 								}}
 								className="px-3 py-1 text-xs bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-200 rounded hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
 							>
-								Đặt lại
+								{unitSystem === "metric" ? "Đặt lại" : "Reset"}
 							</button>
 						</div>
 					)}
@@ -660,10 +676,7 @@ const FloorPlanViewer = ({
 																	fontWeight="400"
 																	className="select-none pointer-events-none"
 																>
-																	{formatVietnameseMeasurement(
-																		room.dimensions.widthM,
-																		"m",
-																	)}
+																	{formatLength(room.dimensions.widthM, unitSystem)}
 																</text>
 															</g>
 
@@ -689,10 +702,7 @@ const FloorPlanViewer = ({
 																	className="select-none pointer-events-none"
 																	transform={`rotate(90 ${room.x + room.width / 2 + 20} ${room.y})`}
 																>
-																	{formatVietnameseMeasurement(
-																		room.dimensions.heightM,
-																		"m",
-																	)}
+																	{formatLength(room.dimensions.heightM, unitSystem)}
 																</text>
 															</g>
 														</>
@@ -710,10 +720,7 @@ const FloorPlanViewer = ({
 															fontWeight="600"
 															className="select-none pointer-events-none"
 														>
-															{Math.round(room.dimensions.areaM2)
-																.toString()
-																.replace(".", ",")}{" "}
-															m²
+															{formatArea(room.dimensions.areaM2, unitSystem)}
 														</text>
 													)}
 												</motion.g>
@@ -794,7 +801,7 @@ const FloorPlanViewer = ({
 															fontWeight="500"
 															className="select-none pointer-events-none"
 														>
-															{calibrationLength} m
+															{calibrationLength} {unitSystem === "metric" ? "m" : "ft"}
 														</text>
 													</g>
 												</>

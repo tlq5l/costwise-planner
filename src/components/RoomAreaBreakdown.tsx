@@ -1,4 +1,5 @@
-import { formatVietnameseMeasurement } from "@/lib/roomClassifier";
+import { useUnitSystem } from "@/context/UnitSystemContext";
+import { formatArea, formatLength } from "@/lib/utils/unitConversions";
 import type { ClassifiedRoom } from "@/types";
 import { motion } from "framer-motion";
 import { useState } from "react";
@@ -24,6 +25,7 @@ const COLORS = [
 
 const RoomAreaBreakdown = ({ rooms, totalArea }: RoomAreaBreakdownProps) => {
 	const [hoveredRoom, setHoveredRoom] = useState<string | null>(null);
+	const { unitSystem } = useUnitSystem();
 
 	// Sort rooms by area (largest first)
 	const sortedRooms = [...rooms].sort(
@@ -93,8 +95,8 @@ const RoomAreaBreakdown = ({ rooms, totalArea }: RoomAreaBreakdownProps) => {
 									</Pie>
 									<Tooltip
 										formatter={(value: number) => [
-											`${(Math.round(value * 10) / 10).toString().replace('.', ',')} m²`,
-											"Diện tích",
+											formatArea(value, unitSystem),
+											unitSystem === "metric" ? "Diện tích" : "Area",
 										]}
 										/>
 								</PieChart>
@@ -131,7 +133,7 @@ const RoomAreaBreakdown = ({ rooms, totalArea }: RoomAreaBreakdownProps) => {
 											</h4>
 										</div>
 										<span className="font-medium">
-											{formatVietnameseMeasurement(room.dimensions.areaM2, "m²")}
+											{formatArea(room.dimensions.areaM2, unitSystem)}
 										</span>
 									</div>
 									<div className="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden dark:bg-gray-700">
@@ -146,8 +148,8 @@ const RoomAreaBreakdown = ({ rooms, totalArea }: RoomAreaBreakdownProps) => {
 										/>
 									</div>
 									<p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-										{formatVietnameseMeasurement(room.dimensions.widthM, "m")} ×{" "}
-										{formatVietnameseMeasurement(room.dimensions.heightM, "m")}
+										{formatLength(room.dimensions.widthM, unitSystem)} ×{" "}
+										{formatLength(room.dimensions.heightM, unitSystem)}
 									</p>
 								</motion.div>
 							))}

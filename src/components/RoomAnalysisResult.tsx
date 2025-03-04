@@ -1,6 +1,8 @@
 import { toast } from "@/hooks/use-toast";
 import { combineFloorPlanAnalysis } from "@/lib/roomAnalysis";
 import { classifyRooms } from "@/lib/roomClassifier";
+import { useUnitSystem } from "@/context/UnitSystemContext";
+import { formatArea } from "@/lib/utils/unitConversions";
 import type {
   CombinedFloorPlanAnalysis,
   FurnitureDetectionResponse,
@@ -34,6 +36,7 @@ const RoomAnalysisResult = ({ result }: RoomAnalysisResultProps) => {
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
   const [showFeedbackBox, setShowFeedbackBox] = useState(false);
   const [feedbackText, setFeedbackText] = useState('');
+  const { unitSystem } = useUnitSystem();
 
   // Process room detection data to include classified rooms if needed
   const processedRoomDetection = useMemo(() => {
@@ -184,7 +187,7 @@ const RoomAnalysisResult = ({ result }: RoomAnalysisResultProps) => {
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6">
               <div className="mb-4 md:mb-0">
                 <div className="text-4xl font-bold mb-2">
-                  {Math.round(result.totalArea)} sq.ft
+                  {formatArea(result.totalArea, unitSystem)}
                 </div>
                 <div className="text-sm text-gray-500 dark:text-gray-400">
                   Total floor area
@@ -285,7 +288,7 @@ const RoomAnalysisResult = ({ result }: RoomAnalysisResultProps) => {
                       <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed">
                         The floor plan shows {formatRoomDetection()}. The total
                         estimated area is approximately{" "}
-                        {Math.round(result.totalArea)} sq.ft.
+                        {formatArea(result.totalArea, unitSystem)}.
                         <br />
                         <br />
                         {furnitureDetection && furnitureDetection.predictions.length > 0 && (

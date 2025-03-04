@@ -1,6 +1,8 @@
 import { toast } from "@/hooks/use-toast";
 import { classifyRooms } from "@/lib/roomClassifier";
 import type { EstimationResult as EstimationResultType, ProcessedRoboflowResponse } from "@/types";
+import { useUnitSystem } from "@/context/UnitSystemContext";
+import { convertArea, formatArea } from "@/lib/utils/unitConversions";
 import { motion } from "framer-motion";
 import { ChevronDown, ChevronUp, Download, Save } from "lucide-react";
 import { useState } from "react";
@@ -29,6 +31,7 @@ const formatCurrency = (value: number, currency: string): string => {
 
 const EstimationResult = ({ result }: EstimationResultProps) => {
 	const [isExpanded, setIsExpanded] = useState(true);
+	const { unitSystem } = useUnitSystem();
 
 	// Process room detection data to include classified rooms if needed
 	const processedRoomDetection: ProcessedRoboflowResponse | undefined = result.roomDetection
@@ -131,7 +134,7 @@ const EstimationResult = ({ result }: EstimationResultProps) => {
 
 				{isExpanded && (
 					<div className="p-6">
-						<div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6">
+							<div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6">
 							<div className="mb-4 md:mb-0">
 								<div className="text-4xl font-bold mb-2">
 									{formatCurrency(result.totalCost, result.currency)}
@@ -144,11 +147,11 @@ const EstimationResult = ({ result }: EstimationResultProps) => {
 							<div className="flex space-x-6">
 								<div>
 									<div className="text-sm text-gray-500 dark:text-gray-400 mb-1">
-										Cost per sq.ft
+										Cost per {unitSystem === "imperial" ? "sq.ft" : "m²"}
 									</div>
 									<div className="text-xl font-semibold">
 										{formatCurrency(
-											result.totalCost / (result.estimatedArea || 2000),
+											result.totalCost / (convertArea(result.estimatedArea || 2000, unitSystem)),
 											result.currency,
 										)}
 									</div>
@@ -159,7 +162,7 @@ const EstimationResult = ({ result }: EstimationResultProps) => {
 										Estimated area
 									</div>
 								<div className="text-xl font-semibold">
-									~{Math.round(result.estimatedArea || 185).toString().replace('.', ',')} m²
+									{formatArea(result.estimatedArea || 185, unitSystem)}
 								</div>
 								</div>
 							</div>
@@ -185,7 +188,7 @@ const EstimationResult = ({ result }: EstimationResultProps) => {
 									<p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed">
 										The floor plan shows {formatRoomDetection()}. The total
 										estimated area is approximately{" "}
-										{Math.round(result.estimatedArea || 185).toString().replace('.', ',')} m².
+										{formatArea(result.estimatedArea || 185, unitSystem)}.
 										<br />
 										<br />
 										Based on the detected room layout, quality of finishes

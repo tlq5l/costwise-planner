@@ -1,4 +1,6 @@
 import type { Project } from "@/types";
+import { useUnitSystem } from "@/context/UnitSystemContext";
+import { formatArea } from "@/lib/utils/unitConversions";
 import { formatDistanceToNow } from "date-fns/formatDistanceToNow";
 import { motion } from "framer-motion";
 import { ArrowRight, Clock } from "lucide-react";
@@ -10,6 +12,7 @@ interface ProjectItemProps {
 
 const ProjectItem = ({ project }: ProjectItemProps) => {
 	const latestAnalysis = project.analyses[0];
+	const { unitSystem } = useUnitSystem();
 
 	return (
 		<motion.div
@@ -36,7 +39,7 @@ const ProjectItem = ({ project }: ProjectItemProps) => {
 					{latestAnalysis && (
 						<div className="text-right">
 							<div className="text-lg font-semibold">
-								{Math.round(latestAnalysis.totalArea)} sq.ft
+								{formatArea(latestAnalysis.totalArea, unitSystem)}
 							</div>
 							<div className="text-xs text-gray-500 dark:text-gray-400">
 								Total area

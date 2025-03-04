@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Suspense, lazy } from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { ProjectsProvider } from "./context/ProjectsContext";
+import { UnitSystemProvider } from "./context/UnitSystemContext";
 
 // Lazy-loaded components
 const Index = lazy(() => import("./pages/Index"));
@@ -17,21 +18,23 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ProjectsProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Suspense fallback={<div className="flex items-center justify-center h-screen">Loading...</div>}>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="cost-estimation-walkthrough" element={<CostEstimationWalkthrough />} />
-              <Route path="/project/:projectId" element={<ProjectDetail />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Suspense>
-        </BrowserRouter>
-      </TooltipProvider>
+      <UnitSystemProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Suspense fallback={<div className="flex items-center justify-center h-screen">Loading...</div>}>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                <Route path="cost-estimation-walkthrough" element={<CostEstimationWalkthrough />} />
+                <Route path="/project/:projectId" element={<ProjectDetail />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
+          </BrowserRouter>
+        </TooltipProvider>
+      </UnitSystemProvider>
     </ProjectsProvider>
   </QueryClientProvider>
 );

@@ -571,6 +571,9 @@ export function checkRoomOverlap(room1: ClassifiedRoom, room2: ClassifiedRoom): 
 /**
  * Vietnamese-specific formatting for measurements
  * Uses comma as decimal separator
+ *
+ * Note: This is kept for backwards compatibility.
+ * New code should use formatLength/formatArea from unitConversions.ts
  */
 export function formatVietnameseMeasurement(value: number, unit = 'm'): string {
   // Convert to string with 1 decimal place
