@@ -28,34 +28,38 @@ const delay = (ms: number): Promise<void> => {
 import { createObjectURL, fileToBase64 } from "../utils/fileUtils";
 
 export const processFloorPlan = async (
-  file: File
+  file: File,
+  furnitureDetection?: FurnitureDetectionResponse,
+  roomDetection?: ProcessedRoboflowResponse
 ): Promise<RoomAnalysisResult> => {
   try {
-    // Simulate processing time
-    await delay(1000);
-
-    // Convert file to base64 using environment-aware utility
-    const base64Image = await fileToBase64(file);
-
     // Create a URL for the image preview using environment-aware utility
     const imageUrl = createObjectURL(file);
 
-    // STEP 1: First detect furniture - this provides semantic clues for room classification
-    // The furniture items will help us determine the function of each room
-    const furnitureDetection = await detectFurnitureFromBase64(base64Image);
+    // If detection results aren't provided, fetch them
+    if (!furnitureDetection || !roomDetection) {
+      // Convert file to base64 using environment-aware utility
+      const base64Image = await fileToBase64(file);
 
-    // STEP 2: Then detect and initially classify rooms based on size and shape
-    // This gives us the room boundaries but classification may still be preliminary
-    const roomDetection = await detectAndClassifyRoomsFromBase64(base64Image);
+      // Fetch furniture detection if not provided
+      if (!furnitureDetection) {
+        furnitureDetection = await detectFurnitureFromBase64(base64Image);
+      }
 
-    // STEP 3: Assign furniture to rooms based on spatial relationships
+      // Fetch room detection if not provided
+      if (!roomDetection) {
+        roomDetection = await detectAndClassifyRoomsFromBase64(base64Image);
+      }
+    }
+
+    // STEP 1: Assign furniture to rooms based on spatial relationships
     // This connects furniture items to their containing rooms
     const assignedFurniture = assignFurnitureToRooms(
       furnitureDetection.predictions,
       roomDetection.predictions
     );
 
-    // STEP 4: Update room classification based on furniture
+    // STEP 2: Update room classification based on furniture
     // This is where we enhance the initial classification with semantic information from furniture
     const enhancedRooms = classifyRoomsByFurniture(
       roomDetection.predictions,

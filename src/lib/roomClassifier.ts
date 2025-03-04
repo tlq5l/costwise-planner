@@ -32,9 +32,27 @@ const ASPECT_RATIO = {
   SQUARE: 0.85, // nearly square rooms
 };
 
-// Default pixels to meters conversion (approximate, can be adjusted)
-// This would ideally be calculated based on known dimensions
-export const DEFAULT_PIXELS_TO_METERS = 0.03048; // Converted from 0.1 feet (1 foot = 0.3048 meters)
+// Default scale factor (pixels to meters) if not provided
+export const DEFAULT_PIXELS_TO_METERS = 0.02; // 50 pixels per meter
+
+/**
+ * Calculate polygon area using the Shoelace formula (Surveyor's formula)
+ * This provides more accurate area calculation for irregular polygons
+ */
+function calculatePolygonArea(points: RoboflowPoint[]): number {
+  if (points.length < 3) return 0;
+
+  let area = 0;
+  const n = points.length;
+
+  for (let i = 0; i < n; i++) {
+    const j = (i + 1) % n;
+    area += points[i].x * points[j].y;
+    area -= points[j].x * points[i].y;
+  }
+
+  return Math.abs(area) / 2;
+}
 
 /**
  * Calculate a dynamic scale factor based on a known reference measurement
@@ -55,26 +73,22 @@ export function calculateDynamicScale(
 }
 
 /**
- * Calculate polygon area using the Shoelace formula (Surveyor's formula)
- * This provides an accurate area calculation for any polygon shape
+ * Check if a point is inside a polygon using ray casting algorithm
  */
-export function calculatePolygonArea(points: { x: number; y: number }[]): number {
-  let area = 0;
-  const n = points.length;
+function isPointInPolygon(x: number, y: number, polygon: RoboflowPoint[]): boolean {
+  let inside = false;
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const xi = polygon[i].x;
+    const yi = polygon[i].y;
+    const xj = polygon[j].x;
+    const yj = polygon[j].y;
 
-  // Need at least 3 points to form a polygon
-  if (n < 3) return 0;
-
-  for (let i = 0; i < n; i++) {
-    const j = (i + 1) % n;
-    area += points[i].x * points[j].y;
-    area -= points[j].x * points[i].y;
+    const intersect = ((yi > y) !== (yj > y))
+      && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+    if (intersect) inside = !inside;
   }
-
-  area = Math.abs(area) / 2;
-  return area;
+  return inside;
 }
-
 /**
  * Try to identify a room type from the Roboflow class name
  */
@@ -344,6 +358,22 @@ export function classifyRoomsByFurniture(
     }
   }
 
+  // For any furniture items not assigned to a room, check if they are inside any room polygon
+  const unassignedFurniture = furniture.filter(item => !item.room);
+
+  for (const item of unassignedFurniture) {
+    for (const room of rooms) {
+      // Check if furniture center point is inside room polygon
+      if (isPointInPolygon(item.x, item.y, room.points)) {
+        if (!furnitureByRoom[room.detection_id]) {
+          furnitureByRoom[room.detection_id] = [];
+        }
+        furnitureByRoom[room.detection_id].push(item);
+        break; // Assign to first matching room only
+      }
+    }
+  }
+
   // Enhanced room classification
   return rooms.map(room => {
     // Get furniture in this room
@@ -357,16 +387,24 @@ export function classifyRoomsByFurniture(
     // Infer room type from furniture
     const inferredType = inferRoomTypeFromFurniture(roomFurniture);
 
-    // Use the inferred type in more cases:
+    // Calculate confidence level based on the number and types of furniture
+    const confidence = calculateFurnitureConfidence(roomFurniture, inferredType);
+
+    // Log for debugging
+    console.log(`Room ${room.detection_id} (${room.roomType}) contains ${roomFurniture.length} furniture items. Inferred type: ${inferredType} with confidence ${confidence}`);
+
+    // Use the inferred type based on confidence and specific rules:
     // 1. When the current type is unknown or generic
-    // 2. When furniture provides a strong classification signal
+    // 2. When furniture provides a strong classification signal (high confidence)
+    // 3. For special cases with highly distinctive furniture
     if (inferredType !== RoomType.UNKNOWN &&
         (room.roomType === RoomType.UNKNOWN ||
          room.roomType === RoomType.OTHER ||
+         confidence > 0.7 || // High confidence from furniture
          // Hallways and closets often misclassified by size/shape alone
          room.roomType === RoomType.HALLWAY ||
          room.roomType === RoomType.CLOSET ||
-         // For special cases: strengthen confidence in important rooms
+         // For special cases: strengthen confidence in important rooms with distinctive furniture
          (inferredType === RoomType.BATHROOM && roomFurniture.some(f =>
            f.furnitureType === FurnitureType.TOILET || f.furnitureType === FurnitureType.BATHTUB)) ||
          (inferredType === RoomType.KITCHEN && roomFurniture.some(f =>
@@ -383,6 +421,69 @@ export function classifyRoomsByFurniture(
 
     return room;
   });
+}
+
+/**
+ * Calculate confidence level for furniture-based room classification
+ * Returns a number between 0 and 1 representing confidence
+ */
+function calculateFurnitureConfidence(
+  furniture: FurnitureItem[],
+  inferredType: RoomType
+): number {
+  if (furniture.length === 0) return 0;
+
+  // Count distinctive items for each room type
+  const distinctiveItems = {
+    [RoomType.BATHROOM]: furniture.filter(f =>
+      f.furnitureType === FurnitureType.TOILET ||
+      f.furnitureType === FurnitureType.BATHTUB ||
+      f.furnitureType === FurnitureType.SINK
+    ).length,
+
+    [RoomType.KITCHEN]: furniture.filter(f =>
+      f.furnitureType === FurnitureType.STOVE ||
+      f.furnitureType === FurnitureType.REFRIGERATOR ||
+      f.furnitureType === FurnitureType.SINK
+    ).length,
+
+    [RoomType.BEDROOM]: furniture.filter(f =>
+      f.furnitureType === FurnitureType.BED
+    ).length,
+
+    [RoomType.LIVING_ROOM]: furniture.filter(f =>
+      f.furnitureType === FurnitureType.SOFA
+    ).length,
+
+    [RoomType.DINING_ROOM]: furniture.filter(f =>
+      f.furnitureType === FurnitureType.TABLE &&
+      furniture.filter(item => item.furnitureType === FurnitureType.CHAIR).length >= 2
+    ).length
+  };
+
+  // Calculate confidence based on distinctive items for the inferred type
+  const typeScore = distinctiveItems[inferredType] || 0;
+
+  // Base confidence calculation
+  let confidence = 0;
+
+  // Special cases with very high confidence (distinctive furniture)
+  if (inferredType === RoomType.BATHROOM && typeScore >= 2) {
+    confidence = 0.95; // Very high confidence for bathroom with multiple distinctive items
+  } else if (inferredType === RoomType.KITCHEN && typeScore >= 2) {
+    confidence = 0.95; // Very high confidence for kitchen with multiple distinctive items
+  } else if (inferredType === RoomType.BEDROOM && typeScore >= 1) {
+    confidence = 0.9; // High confidence for bedroom with a bed
+  } else if (inferredType === RoomType.LIVING_ROOM && typeScore >= 1) {
+    confidence = 0.8; // Good confidence for living room with a sofa
+  } else if (inferredType === RoomType.DINING_ROOM && typeScore >= 1) {
+    confidence = 0.85; // Good confidence for dining room with table and chairs
+  } else {
+    // Default confidence based on ratio of distinctive items to total furniture
+    confidence = Math.min(0.7, typeScore / furniture.length);
+  }
+
+  return confidence;
 }
 
 /**

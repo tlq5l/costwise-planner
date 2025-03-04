@@ -168,90 +168,89 @@ const FileUploader = ({ onAnalysisComplete }: FileUploaderProps) => {
       // Short delay to show the uploading state
       await new Promise(resolve => setTimeout(resolve, 800));
 
-      // Room detection phase with animation
-      setUploadStatus("roomDetection");
+      // Furniture detection phase first
+      setUploadStatus("furnitureDetection");
 
-      // Dynamically import the room detection module
-      const { detectRoomsWithAnimation } = await import("@/lib/animations/roomAnimations");
+      // Dynamically import the furniture detection module
+      const { detectFurnitureWithAnimation } = await import("@/lib/animations/furnitureAnimations");
 
-      // Start the room detection with animation
-      const roomResults = await detectRoomsWithAnimation(imageBase64);
+      // Start furniture detection with animation
+      const furnitureResults = await detectFurnitureWithAnimation(imageBase64);
 
-      // Animation loop to show rooms being detected
-      const animateRoomDetection = async () => {
-        const nextRoom = roomResults.getNextRoom();
-        if (nextRoom) {
-          setDetectedRooms(prev => [...prev, nextRoom]);
-          // Continue animating rooms
-          setTimeout(animateRoomDetection, 500);
+      // Animation loop to show furniture being detected
+      const animateFurnitureDetection = async () => {
+        const nextItem = furnitureResults.getNextItem();
+        if (nextItem) {
+          setDetectedFurniture(prev => [...prev, nextItem]);
+          // Continue animating furniture
+          setTimeout(animateFurnitureDetection, 500);
         } else {
-          // Room detection complete, proceed to furniture detection
-          setUploadStatus("furnitureDetection");
+          // Proceed to room detection after furniture detection
+          setUploadStatus("roomDetection");
 
-          // Dynamically import the furniture detection module
-          const { detectFurnitureWithAnimation } = await import("@/lib/animations/furnitureAnimations");
+          // Dynamically import the room detection module
+          const { detectRoomsWithAnimation } = await import("@/lib/animations/roomAnimations");
 
-          // Start furniture detection with animation
-          const furnitureResults = await detectFurnitureWithAnimation(imageBase64);
+          // Start the room detection with animation
+          const roomResults = await detectRoomsWithAnimation(imageBase64);
 
-          // Animation loop to show furniture being detected
-          const animateFurnitureDetection = async () => {
-            const nextItem = furnitureResults.getNextItem();
-            if (nextItem) {
-              setDetectedFurniture(prev => [...prev, nextItem]);
-              // Continue animating furniture
-              setTimeout(animateFurnitureDetection, 500);
+          // Animation loop to show rooms being detected
+          const animateRoomDetection = async () => {
+            const nextRoom = roomResults.getNextRoom();
+            if (nextRoom) {
+              setDetectedRooms(prev => [...prev, nextRoom]);
+              // Continue animating rooms
+              setTimeout(animateRoomDetection, 500);
             } else {
-              // Furniture detection complete, proceed to Gemini reasoning
+              // Both detections complete, proceed to integration and Gemini reasoning
               setUploadStatus("geminiReasoning");
 
               // Dynamically import the floor plan processor
               const { processFloorPlan } = await import("@/lib/analysis/floorPlanProcessor");
 
-              // Now call our final process (which includes Gemini in the pipeline).
-              processFloorPlan(file)
+              // Call our final process with both detection results
+              processFloorPlan(file, furnitureResults.fullResponse, roomResults.fullResponse)
                 .then(result => {
                   // Update status and notify parent component
                   setUploadStatus("success");
 
-                // IMPORTANT: Update the UI with the enhanced room and furniture classifications
-                // This ensures we're using the properly enhanced room classifications
-                // Cast to appropriate types to handle type compatibility
-                if (result.roomDetection && 'predictions' in result.roomDetection) {
-                  const enhancedRooms = result.roomDetection.predictions as ClassifiedRoom[];
-                  setDetectedRooms(enhancedRooms);
-                }
+                  // IMPORTANT: Update the UI with the enhanced room and furniture classifications
+                  // This ensures we're using the properly enhanced room classifications with furniture context
+                  if (result.roomDetection && 'predictions' in result.roomDetection) {
+                    const enhancedRooms = result.roomDetection.predictions as ClassifiedRoom[];
+                    setDetectedRooms(enhancedRooms);
+                  }
 
-                if (result.furnitureDetection && 'predictions' in result.furnitureDetection) {
-                  const enhancedFurniture = result.furnitureDetection.predictions as FurnitureItem[];
-                  setDetectedFurniture(enhancedFurniture);
-                }
+                  if (result.furnitureDetection && 'predictions' in result.furnitureDetection) {
+                    const enhancedFurniture = result.furnitureDetection.predictions as FurnitureItem[];
+                    setDetectedFurniture(enhancedFurniture);
+                  }
 
-                // Pass the selected project ID to the callback
-                onAnalysisComplete(result, selectedProjectId);
+                  // Pass the selected project ID to the callback
+                  onAnalysisComplete(result, selectedProjectId);
 
-                // Prepare toast message based on project selection
-                let description = "Your floor plan has been analyzed successfully";
-                if (selectedProjectId) {
-                  const projectName = projects.find(p => p.id === selectedProjectId)?.name;
-                  description += ` and added to "${projectName}"`;
-                }
+                  // Prepare toast message based on project selection
+                  let description = "Your floor plan has been analyzed successfully";
+                  if (selectedProjectId) {
+                    const projectName = projects.find(p => p.id === selectedProjectId)?.name;
+                    description += ` and added to "${projectName}"`;
+                  }
 
-                toast({
-                  title: "Analysis complete",
-                  description,
+                  toast({
+                    title: "Analysis complete",
+                    description,
+                  });
                 });
-              });
             }
           };
 
-          // Start the furniture animation
-          animateFurnitureDetection();
+          // Start the room animation
+          animateRoomDetection();
         }
       };
 
-      // Start the room animation
-      animateRoomDetection();
+      // Start the furniture animation
+      animateFurnitureDetection();
 
     } catch (error) {
       console.error("Error processing file:", error);

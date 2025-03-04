@@ -1,27 +1,27 @@
 import { FURNITURE_COLORS } from "@/lib/furnitureDetection";
 import { ROOM_COLORS, formatVietnameseMeasurement } from "@/lib/roomClassifier";
 import type {
-  ClassifiedRoom,
-  FurnitureDetectionResponse,
-  FurnitureItem,
-  ProcessedRoboflowResponse,
-  RoboflowPoint,
+    ClassifiedRoom,
+    FurnitureDetectionResponse,
+    FurnitureItem,
+    ProcessedRoboflowResponse,
+    RoboflowPoint,
 } from "@/types";
 import { motion } from "framer-motion";
 import {
-  Home,
-  Layers,
-  RotateCcw,
-  Ruler,
-  Sofa,
-  ZoomIn,
-  ZoomOut,
+    Home,
+    Layers,
+    RotateCcw,
+    Ruler,
+    Sofa,
+    ZoomIn,
+    ZoomOut,
 } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 import {
-  type ReactZoomPanPinchRef,
-  TransformComponent,
-  TransformWrapper,
+    type ReactZoomPanPinchRef,
+    TransformComponent,
+    TransformWrapper,
 } from "react-zoom-pan-pinch";
 
 interface FloorPlanViewerProps {
@@ -43,14 +43,31 @@ const FloorPlanViewer = ({
 	scaleFactor,
 	onScaleFactorChange,
 }: FloorPlanViewerProps) => {
-	const [rooms, setRooms] = useState<ClassifiedRoom[]>(
-		roomDetection.predictions.map((room) => ({
-			...room,
-			isVisible: true,
-			isHighlighted: false,
-			isProcessing: isAnimating,
-		})),
-	);
+	// Initialize state for rooms from room detection
+	const [rooms, setRooms] = useState<(ClassifiedRoom & {
+		isVisible: boolean;
+		isHighlighted: boolean;
+		isProcessing: boolean;
+	})[]>([]);
+
+	useEffect(() => {
+		if (roomDetection && roomDetection.predictions) {
+			// Set rooms from enhanced room detection that already incorporates furniture context
+			setRooms(roomDetection.predictions.map(room => ({
+				...room,
+				isVisible: true,
+				isHighlighted: false,
+				// Ensure we're using the enhanced room classifications from roomDetection
+				// which should already incorporate furniture-based classification
+				isProcessing: isAnimating
+			})));
+
+			// Log the room types to verify enhanced classifications are being used
+			console.log("Using room classifications:", roomDetection.predictions.map(r =>
+				`${r.roomType} (${r.detection_id})`
+			));
+		}
+	}, [roomDetection, isAnimating]);
 
 	const [furniture, setFurniture] = useState<FurnitureItem[]>(
 		furnitureDetection
