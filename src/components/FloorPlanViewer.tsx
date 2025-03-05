@@ -4,8 +4,10 @@ import { ROOM_COLORS } from "@/lib/roomClassifier";
 import { formatArea, formatLength } from "@/lib/utils/unitConversions";
 import type {
     ClassifiedRoom,
+	DimensionAnnotation,
     FurnitureDetectionResponse,
     FurnitureItem,
+	OcrAnalysisResult,
     ProcessedRoboflowResponse,
     RoboflowPoint,
 } from "@/types";
@@ -30,6 +32,7 @@ interface FloorPlanViewerProps {
 	imageUrl: string;
 	roomDetection: ProcessedRoboflowResponse;
 	furnitureDetection?: FurnitureDetectionResponse;
+	ocrAnalysis?: OcrAnalysisResult;
 	isAnimating?: boolean;
 	onAnimationComplete?: () => void;
 	scaleFactor?: number;
@@ -40,6 +43,7 @@ const FloorPlanViewer = ({
 	imageUrl,
 	roomDetection,
 	furnitureDetection,
+	ocrAnalysis,
 	isAnimating = false,
 	onAnimationComplete,
 	scaleFactor,
@@ -84,9 +88,10 @@ const FloorPlanViewer = ({
 
 	const [showLabels, setShowLabels] = useState(true);
 	const [showDimensions, setShowDimensions] = useState(true);
+	const [showOcrDimensions, setShowOcrDimensions] = useState(true);
 	const [showAllRooms, setShowAllRooms] = useState(true);
 	const [showAllFurniture, setShowAllFurniture] = useState(true);
-	const [activeTab, setActiveTab] = useState<"rooms" | "furniture">("rooms");
+	const [activeTab, setActiveTab] = useState<"rooms" | "furniture" | "ocr">("rooms");
 	const [isCalibrationMode, setIsCalibrationMode] = useState(false);
 	const [calibrationPoints, setCalibrationPoints] = useState<{
 		start?: { x: number; y: number };
@@ -206,73 +211,105 @@ const FloorPlanViewer = ({
 			style={{ minHeight: "850px" }}
 		>
 			{/* Control panel */}
-			<div className="absolute top-4 left-4 z-20 bg-white dark:bg-gray-900 rounded-lg shadow-md p-2 space-y-2">
-				<button
-					type="button"
-					onClick={() => transformComponentRef.current?.zoomIn()}
-					className="w-8 h-8 flex items-center justify-center rounded hover:bg-gray-100 dark:hover:bg-gray-800"
-					aria-label="Zoom in"
-				>
-					<ZoomIn className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-				</button>
+				<div className="absolute top-4 left-4 z-20 bg-white dark:bg-gray-900 rounded-lg shadow-md p-2 space-y-2">
+					<button
+						type="button"
+						onClick={() => transformComponentRef.current?.zoomIn()}
+						className="w-8 h-8 flex items-center justify-center rounded hover:bg-gray-100 dark:hover:bg-gray-800"
+						aria-label="Zoom in"
+					>
+						<ZoomIn className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+					</button>
 
-				<button
-					type="button"
-					onClick={() => transformComponentRef.current?.zoomOut()}
-					className="w-8 h-8 flex items-center justify-center rounded hover:bg-gray-100 dark:hover:bg-gray-800"
-					aria-label="Zoom out"
-				>
-					<ZoomOut className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-				</button>
+					<button
+						type="button"
+						onClick={() => transformComponentRef.current?.zoomOut()}
+						className="w-8 h-8 flex items-center justify-center rounded hover:bg-gray-100 dark:hover:bg-gray-800"
+						aria-label="Zoom out"
+					>
+						<ZoomOut className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+					</button>
 
-				<button
-					type="button"
-					onClick={resetTransform}
-					className="w-8 h-8 flex items-center justify-center rounded hover:bg-gray-100 dark:hover:bg-gray-800"
-					aria-label="Reset view"
-				>
-					<RotateCcw className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-				</button>
+					<button
+						type="button"
+						onClick={resetTransform}
+						className="w-8 h-8 flex items-center justify-center rounded hover:bg-gray-100 dark:hover:bg-gray-800"
+						aria-label="Reset view"
+					>
+						<RotateCcw className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+					</button>
 
-				<div className="border-t border-gray-200 dark:border-gray-700 pt-2" />
+					<div className="border-t border-gray-200 dark:border-gray-700 pt-2" />
 
-				<button
-					type="button"
-					onClick={() => setShowLabels(!showLabels)}
-					className={`w-8 h-8 flex items-center justify-center rounded ${
-						showLabels
-							? "bg-blue-100 dark:bg-blue-900"
-							: "hover:bg-gray-100 dark:hover:bg-gray-800"
-					}`}
-					aria-label="Toggle labels"
-				>
-					<Layers
-						className={`w-5 h-5 ${
+					<button
+						type="button"
+						onClick={() => setShowLabels(!showLabels)}
+						className={`w-8 h-8 flex items-center justify-center rounded ${
 							showLabels
-								? "text-blue-600 dark:text-blue-400"
-								: "text-gray-700 dark:text-gray-300"
+								? "bg-blue-100 dark:bg-blue-900"
+								: "hover:bg-gray-100 dark:hover:bg-gray-800"
 						}`}
-					/>
-				</button>
+						aria-label="Toggle labels"
+					>
+						<Layers
+							className={`w-5 h-5 ${
+								showLabels
+									? "text-blue-600 dark:text-blue-400"
+									: "text-gray-700 dark:text-gray-300"
+							}`}
+						/>
+					</button>
 
-				<button
-					type="button"
-					onClick={() => setShowDimensions(!showDimensions)}
-					className={`w-8 h-8 flex items-center justify-center rounded ${
-						showDimensions
-							? "bg-blue-100 dark:bg-blue-900"
-							: "hover:bg-gray-100 dark:hover:bg-gray-800"
-					}`}
-					aria-label="Toggle dimensions"
-				>
-					<Ruler
-						className={`w-5 h-5 ${
+					<button
+						type="button"
+						onClick={() => setShowDimensions(!showDimensions)}
+						className={`w-8 h-8 flex items-center justify-center rounded ${
 							showDimensions
-								? "text-blue-600 dark:text-blue-400"
-								: "text-gray-700 dark:text-gray-300"
+								? "bg-blue-100 dark:bg-blue-900"
+								: "hover:bg-gray-100 dark:hover:bg-gray-800"
 						}`}
-					/>
-				</button>
+						aria-label="Toggle dimensions"
+					>
+						<Ruler
+							className={`w-5 h-5 ${
+								showDimensions
+									? "text-blue-600 dark:text-blue-400"
+									: "text-gray-700 dark:text-gray-300"
+							}`}
+						/>
+					</button>
+
+					{/* OCR dimensions toggle button - only show if OCR data exists */}
+					{ocrAnalysis?.dimensions && ocrAnalysis.dimensions.length > 0 && (
+						<button
+							type="button"
+							onClick={() => setShowOcrDimensions(!showOcrDimensions)}
+							className={`w-8 h-8 flex items-center justify-center rounded ${
+								showOcrDimensions
+									? "bg-cyan-100 dark:bg-cyan-900"
+									: "hover:bg-gray-100 dark:hover:bg-gray-800"
+							}`}
+							aria-label="Toggle OCR dimensions"
+							title="Toggle OCR dimension annotations"
+						>
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								strokeWidth="2"
+								strokeLinecap="round"
+								strokeLinejoin="round"
+								className={`w-5 h-5 ${
+									showOcrDimensions
+										? "text-cyan-600 dark:text-cyan-400"
+										: "text-gray-700 dark:text-gray-300"
+								}`}
+							>
+								<path d="M7 5h10M5 9h14M3 13h18M5 17h14M7 21h10" />
+							</svg>
+						</button>
+					)}
 
 				<div className="border-t border-gray-200 dark:border-gray-700 pt-2" />
 
@@ -623,106 +660,116 @@ const FloorPlanViewer = ({
 														whileHover={{ scale: 1.01 }}
 													/>
 
-													{/* Room label */}
-													{showLabels && (
-														<g>
-															<rect
-																x={room.x - 40}
-																y={room.y - 10}
-																width="80"
-																height="20"
-																rx="4"
-																fill="white"
-																fillOpacity="0.8"
-																stroke={room.color}
-																strokeWidth="1"
-															/>
-															<text
-																x={room.x}
-																y={room.y + 5}
-																textAnchor="middle"
-																dominantBaseline="middle"
-																fill="rgb(31, 41, 55)"
-																fontSize="10"
-																fontWeight="500"
-																className="select-none pointer-events-none"
-															>
-																{room.roomType}
-															</text>
-														</g>
-													)}
+									{/* Room label */}
+									{showLabels && (
+										<g>
+											<rect
+												x={room.x - 40}
+												y={room.y - 10}
+												width="80"
+												height="20"
+												rx="4"
+												fill="white"
+												fillOpacity="0.8"
+												stroke={room.color}
+												strokeWidth="1"
+											/>
+											<text
+												x={room.x}
+												y={room.y + 5}
+												textAnchor="middle"
+												dominantBaseline="middle"
+												fill="rgb(31, 41, 55)"
+												fontSize="10"
+												fontWeight="500"
+												className="select-none pointer-events-none"
+											>
+												{room.roomType}
+												{room.verifiedByOcr && "✓"}
+											</text>
+										</g>
+									)}
 
-													{/* Dimension labels */}
-													{showDimensions && (
-														<>
-															{/* Width dimension */}
-															<g>
-																<line
-																	x1={room.x - room.width / 2}
-																	y1={room.y + room.height / 2 + 10}
-																	x2={room.x + room.width / 2}
-																	y2={room.y + room.height / 2 + 10}
-																	stroke={room.color}
-																	strokeWidth="1"
-																	strokeDasharray="4,2"
-																/>
-																<text
-																	x={room.x}
-																	y={room.y + room.height / 2 + 20}
-																	textAnchor="middle"
-																	dominantBaseline="middle"
-																	fill={room.color}
-																	fontSize="9"
-																	fontWeight="400"
-																	className="select-none pointer-events-none"
-																>
-																	{formatLength(room.dimensions.widthM, unitSystem)}
-																</text>
-															</g>
+									{/* Dimension labels */}
+									{showDimensions && (
+										<>
+											{/* Width dimension */}
+											<g>
+												<line
+													x1={room.x - room.width / 2}
+													y1={room.y + room.height / 2 + 10}
+													x2={room.x + room.width / 2}
+													y2={room.y + room.height / 2 + 10}
+													stroke={room.color}
+													strokeWidth="1"
+													strokeDasharray="4,2"
+												/>
+												<text
+													x={room.x}
+													y={room.y + room.height / 2 + 20}
+													textAnchor="middle"
+													dominantBaseline="middle"
+													fill={room.color}
+													fontSize="9"
+													fontWeight="400"
+													className="select-none pointer-events-none"
+												>
+													{/* Use OCR width if available, otherwise use AI-estimated width */}
+													{room.ocrWidthM
+														? formatLength(room.ocrWidthM, unitSystem)
+														: formatLength(room.dimensions.widthM, unitSystem)}
+												</text>
+											</g>
 
-															{/* Height dimension */}
-															<g>
-																<line
-																	x1={room.x + room.width / 2 + 10}
-																	y1={room.y - room.height / 2}
-																	x2={room.x + room.width / 2 + 10}
-																	y2={room.y + room.height / 2}
-																	stroke={room.color}
-																	strokeWidth="1"
-																	strokeDasharray="4,2"
-																/>
-																<text
-																	x={room.x + room.width / 2 + 20}
-																	y={room.y}
-																	textAnchor="middle"
-																	dominantBaseline="middle"
-																	fill={room.color}
-																	fontSize="9"
-																	fontWeight="400"
-																	className="select-none pointer-events-none"
-																	transform={`rotate(90 ${room.x + room.width / 2 + 20} ${room.y})`}
-																>
-																	{formatLength(room.dimensions.heightM, unitSystem)}
-																</text>
-															</g>
-														</>
-													)}
+											{/* Height dimension */}
+											<g>
+												<line
+													x1={room.x + room.width / 2 + 10}
+													y1={room.y - room.height / 2}
+													x2={room.x + room.width / 2 + 10}
+													y2={room.y + room.height / 2}
+													stroke={room.color}
+													strokeWidth="1"
+													strokeDasharray="4,2"
+												/>
+												<text
+													x={room.x + room.width / 2 + 20}
+													y={room.y}
+													textAnchor="middle"
+													dominantBaseline="middle"
+													fill={room.color}
+													fontSize="9"
+													fontWeight="400"
+													className="select-none pointer-events-none"
+													transform={`rotate(90 ${room.x + room.width / 2 + 20} ${room.y})`}
+												>
+													{/* Use OCR height if available, otherwise use AI-estimated height */}
+													{room.ocrHeightM
+														? formatLength(room.ocrHeightM, unitSystem)
+														: formatLength(room.dimensions.heightM, unitSystem)}
+												</text>
+											</g>
+										</>
+									)}
 
-													{/* Area label */}
-													{showDimensions && (
-														<text
-															x={room.x}
-															y={room.y}
-															textAnchor="middle"
-															dominantBaseline="middle"
-															fill={room.color}
-															fontSize="11"
-															fontWeight="600"
-															className="select-none pointer-events-none"
-														>
-															{formatArea(room.dimensions.areaM2, unitSystem)}
-														</text>
-													)}
+									{/* Area label */}
+									{showDimensions && (
+										<text
+											x={room.x}
+											y={room.y}
+											textAnchor="middle"
+											dominantBaseline="middle"
+											fill={room.verifiedByOcr ? "#0ea5e9" : room.color}
+											fontSize="11"
+											fontWeight="600"
+											className="select-none pointer-events-none"
+										>
+											{/* Use OCR area if available, otherwise use AI-estimated area */}
+											{room.ocrAreaM2
+												? formatArea(room.ocrAreaM2, unitSystem)
+												: formatArea(room.dimensions.areaM2, unitSystem)}
+										</text>
+									)}
 												</motion.g>
 											),
 									)}
@@ -808,6 +855,43 @@ const FloorPlanViewer = ({
 											)}
 										</>
 									)}
+
+									{/* OCR-extracted dimension annotations */}
+									{showOcrDimensions && ocrAnalysis?.dimensions && ocrAnalysis.dimensions.length > 0 &&
+										ocrAnalysis.dimensions.map((dim, index) => (
+											<g key={`dim-${index}`} className="ocr-dimension">
+												{/* Bounding box for dimension text */}
+												<rect
+													x={Math.min(...dim.boundingPoly.vertices.map(v => v.x))}
+													y={Math.min(...dim.boundingPoly.vertices.map(v => v.y))}
+													width={Math.max(...dim.boundingPoly.vertices.map(v => v.x)) -
+														Math.min(...dim.boundingPoly.vertices.map(v => v.x))}
+													height={Math.max(...dim.boundingPoly.vertices.map(v => v.y)) -
+														Math.min(...dim.boundingPoly.vertices.map(v => v.y))}
+													fill="#0ea5e9"
+													fillOpacity="0.2"
+													stroke="#0ea5e9"
+													strokeWidth="1"
+													strokeDasharray="2,1"
+												/>
+												{/* Dimension text label */}
+												{dim.center && (
+													<text
+														x={dim.center.x}
+														y={dim.center.y + 10}
+														textAnchor="middle"
+														dominantBaseline="middle"
+														fill="#0ea5e9"
+														fontSize="8"
+														fontWeight="600"
+														className="select-none pointer-events-none"
+													>
+														{dim.rawText} ({formatLength(dim.valueInMeters, unitSystem)})
+													</text>
+												)}
+											</g>
+										))
+									}
 
 									{/* Furniture bounding boxes */}
 									{furniture.map(
@@ -915,6 +999,21 @@ const FloorPlanViewer = ({
 								Furniture ({furniture.length})
 							</button>
 						)}
+
+						{/* OCR Dimensions tab - only show if OCR data exists */}
+						{ocrAnalysis?.dimensions && ocrAnalysis.dimensions.length > 0 && (
+							<button
+								type="button"
+								onClick={() => setActiveTab("ocr")}
+								className={`px-3 py-1 text-xs font-medium rounded-md ${
+									activeTab === "ocr"
+										? "bg-cyan-100 text-cyan-700 dark:bg-cyan-900 dark:text-cyan-300"
+										: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300"
+								}`}
+							>
+								OCR Dimensions ({ocrAnalysis.dimensions.length})
+							</button>
+						)}
 					</div>
 
 					<button
@@ -960,12 +1059,14 @@ const FloorPlanViewer = ({
 										}}
 									/>
 									<span className="truncate capitalize">
-										{room.roomType} ({Math.round(room.dimensions.areaM2)} m²)
+										{room.roomType}
+										{room.verifiedByOcr && " ✓"}
+										({Math.round(room.ocrAreaM2 || room.dimensions.areaM2)} m²)
 									</span>
 								</button>
 							))}
 						</div>
-					) : (
+					) : activeTab === "furniture" ? (
 						<div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
 							{furniture.map((item) => (
 								<button
@@ -995,6 +1096,35 @@ const FloorPlanViewer = ({
 									</span>
 								</button>
 							))}
+						</div>
+					) : (
+						// OCR dimensions panel
+						<div className="space-y-2">
+							{ocrAnalysis?.dimensions && ocrAnalysis.dimensions.map((dim, index) => (
+								<div
+									key={`ocr-dim-${index}`}
+									className="bg-gray-50 dark:bg-gray-800 p-2 rounded-md border border-gray-200 dark:border-gray-700"
+								>
+									<div className="flex justify-between items-center">
+										<span className="font-medium text-cyan-600 dark:text-cyan-400">
+											{dim.rawText}
+										</span>
+										<span className="text-gray-500 dark:text-gray-400">
+											{formatLength(dim.valueInMeters, unitSystem)}
+										</span>
+									</div>
+									<div className="flex text-xs text-gray-500 dark:text-gray-400 mt-1">
+										<span className="mr-4">Unit: {dim.unit}</span>
+										<span>Orientation: {dim.orientation || "unknown"}</span>
+									</div>
+								</div>
+							))}
+							
+							{(!ocrAnalysis?.dimensions || ocrAnalysis.dimensions.length === 0) && (
+								<div className="text-center py-4 text-gray-500 dark:text-gray-400">
+									No dimension annotations detected in this floor plan.
+								</div>
+							)}
 						</div>
 					)}
 				</div>

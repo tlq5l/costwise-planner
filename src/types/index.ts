@@ -3,6 +3,7 @@ export interface RoomAnalysisResult {
   totalArea: number;
   roomDetection?: RoboflowResponse;
   furnitureDetection?: FurnitureDetectionResponse;
+  ocrAnalysis?: OcrAnalysisResult;
   createdAt: Date;
   fileName: string;
   imageUrl: string;
@@ -85,9 +86,45 @@ export interface ClassifiedRoom extends RoboflowPrediction {
     areaFt: number;
     areaM2: number;
   };
+  // OCR-verified dimensions (optional)
+  ocrWidthM?: number;
+  ocrHeightM?: number;
+  ocrAreaM2?: number;
+  verifiedByOcr?: boolean;
   isVisible?: boolean;
   isHighlighted?: boolean;
   isProcessing?: boolean;
+}
+
+/**
+ * Represents a dimension annotation extracted from OCR
+ */
+export interface DimensionAnnotation {
+  rawText: string;           // Original text from OCR
+  valueInMeters: number;     // Value converted to meters (standard unit)
+  rawValue: number;          // The numeric value parsed from text
+  unit: string;              // The identified unit (e.g., "mm", "m", "ft")
+  boundingPoly: {            // Bounding box in the image
+    vertices: Array<{
+      x: number;
+      y: number;
+    }>;
+  };
+  confidence?: number;       // Confidence score if available
+  orientation?: 'horizontal' | 'vertical'; // Inferred orientation
+  center?: {                 // Calculated center point
+    x: number;
+    y: number;
+  };
+}
+
+/**
+ * OCR analysis results for floor plan images
+ */
+export interface OcrAnalysisResult {
+  dimensions: DimensionAnnotation[];
+  roomDimensions: Map<string, DimensionAnnotation[]>;
+  scaleFactor?: number;
 }
 
 export interface FurnitureItem {

@@ -20,6 +20,9 @@ interface RoomAnalysisResultProps {
   result: RoomAnalysisResultType;
 }
 
+// Update RoomAnalysisResultType in src/types/index.ts to include ocrAnalysis
+// This is just a reminder comment - we've already updated the types
+
 const formatDate = (date: Date): string => {
   return new Intl.DateTimeFormat("en-US", {
     year: "numeric",
@@ -252,11 +255,12 @@ const RoomAnalysisResult = ({ result }: RoomAnalysisResultProps) => {
               <div className="w-full bg-gray-100 rounded-lg overflow-hidden dark:bg-gray-700" style={{ minHeight: '700px', height: 'auto' }}>
                 {result.imageUrl && processedRoomDetection && (
                   <div className="relative w-full h-full">
-                    <FloorPlanViewer
-                      imageUrl={result.imageUrl}
-                      roomDetection={processedRoomDetection}
-                      furnitureDetection={furnitureDetection}
-                    />
+                            <FloorPlanViewer
+                                imageUrl={result.imageUrl}
+                                roomDetection={processedRoomDetection}
+                                furnitureDetection={furnitureDetection}
+                                ocrAnalysis={result.ocrAnalysis}
+                            />
                   </div>
                 )}
               </div>
@@ -285,24 +289,33 @@ const RoomAnalysisResult = ({ result }: RoomAnalysisResultProps) => {
                       transition={{ duration: 0.3 }}
                       className="overflow-hidden"
                     >
-                      <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed">
+                    <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed">
                         The floor plan shows {formatRoomDetection()}. The total
                         estimated area is approximately{" "}
                         {formatArea(result.totalArea, unitSystem)}.
                         <br />
                         <br />
+                        {result.ocrAnalysis?.dimensions && result.ocrAnalysis.dimensions.length > 0 && (
+                            <>
+                                <strong>OCR Analysis:</strong> The system detected {result.ocrAnalysis.dimensions.length} dimension{result.ocrAnalysis.dimensions.length !== 1 ? "s" : ""} in the floor plan using
+                                optical character recognition. These extracted measurements were used to improve the accuracy of
+                                room dimensions and area calculations.
+                                <br />
+                                <br />
+                            </>
+                        )}
                         {furnitureDetection && furnitureDetection.predictions.length > 0 && (
-                          <>
-                            The analysis detected {formatFurnitureDetection()} in the floor plan.
-                            <br />
-                            <br />
-                          </>
+                            <>
+                                The analysis detected {formatFurnitureDetection()} in the floor plan.
+                                <br />
+                                <br />
+                            </>
                         )}
                         Each room has been identified and measured. You can see detailed
                         measurements for each room in the breakdown below.
                         This information can be useful for planning furniture layouts,
                         flooring materials, paint quantities, and HVAC requirements.
-                      </p>
+                    </p>
 
                       {combinedAnalysis && (
                         <div className="mt-4">

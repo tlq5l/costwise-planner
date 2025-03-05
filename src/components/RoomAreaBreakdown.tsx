@@ -32,16 +32,18 @@ const RoomAreaBreakdown = ({ rooms, totalArea }: RoomAreaBreakdownProps) => {
 		(a, b) => b.dimensions.areaM2 - a.dimensions.areaM2,
 	);
 
-	// Calculate percentages for each room
+	// Calculate percentages for each room - use OCR values when available
 	const roomsWithPercentage = sortedRooms.map((room) => ({
 		...room,
-		percentage: (room.dimensions.areaM2 / totalArea) * 100,
+		// Use OCR-verified area if available, otherwise use AI-estimated area
+		areaToUse: room.ocrAreaM2 || room.dimensions.areaM2,
+		percentage: ((room.ocrAreaM2 || room.dimensions.areaM2) / totalArea) * 100,
 	}));
 
 	// Prepare data for pie chart
 	const chartData = roomsWithPercentage.map((room) => ({
-		name: room.roomType,
-		value: room.dimensions.areaM2,
+		name: room.roomType + (room.verifiedByOcr ? " ✓" : ""),
+		value: room.ocrAreaM2 || room.dimensions.areaM2,
 	}));
 
 	const handleMouseEnter = (roomId: string) => {
@@ -133,7 +135,10 @@ const RoomAreaBreakdown = ({ rooms, totalArea }: RoomAreaBreakdownProps) => {
 											</h4>
 										</div>
 										<span className="font-medium">
-											{formatArea(room.dimensions.areaM2, unitSystem)}
+											{formatArea(room.ocrAreaM2 || room.dimensions.areaM2, unitSystem)}
+											{room.verifiedByOcr && (
+												<span className="ml-1 text-cyan-500">✓</span>
+											)}
 										</span>
 									</div>
 									<div className="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden dark:bg-gray-700">
@@ -148,8 +153,11 @@ const RoomAreaBreakdown = ({ rooms, totalArea }: RoomAreaBreakdownProps) => {
 										/>
 									</div>
 									<p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-										{formatLength(room.dimensions.widthM, unitSystem)} ×{" "}
-										{formatLength(room.dimensions.heightM, unitSystem)}
+										{formatLength(room.ocrWidthM || room.dimensions.widthM, unitSystem)} ×{" "}
+										{formatLength(room.ocrHeightM || room.dimensions.heightM, unitSystem)}
+										{room.verifiedByOcr && (
+											<span className="ml-1 text-xs text-cyan-500">(OCR verified)</span>
+										)}
 									</p>
 								</motion.div>
 							))}

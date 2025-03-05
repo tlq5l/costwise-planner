@@ -1,4 +1,5 @@
 import type {
+    ClassifiedRoom,
     FurnitureDetectionResponse,
     ProcessedRoboflowResponse,
     RoomAnalysisResult
@@ -23,9 +24,11 @@ const delay = (ms: number): Promise<void> => {
 
 /**
  * Processes a floor plan image to detect rooms and furniture,
- * then enhances room classification with furniture detection
+ * then enhances room classification with furniture detection and OCR-extracted dimensions
  */
 import { createObjectURL, fileToBase64 } from "../utils/fileUtils";
+import { extractDimensionsFromImage, assignDimensionsToRooms, updateRoomWithOcrDimensions } from "../dimensionExtraction";
+import type { DimensionAnnotation, OcrAnalysisResult } from "@/types";
 
 export const processFloorPlan = async (
   file: File,
@@ -36,22 +39,18 @@ export const processFloorPlan = async (
     // Create a URL for the image preview using environment-aware utility
     const imageUrl = createObjectURL(file);
 
+    // Convert file to base64 (needed for both Roboflow and OCR)
+    const base64Image = await fileToBase64(file);
+
     // If detection results aren't provided, fetch them
-    if (!furnitureDetection || !roomDetection) {
-      // Convert file to base64 using environment-aware utility
-      const base64Image = await fileToBase64(file);
+    if (!furnitureDetection) {
+      const fetchedFurnitureDetection = await detectFurnitureFromBase64(base64Image);
+      furnitureDetection = fetchedFurnitureDetection;
+    }
 
-      // Fetch furniture detection if not provided
-      if (!furnitureDetection) {
-        const fetchedFurnitureDetection = await detectFurnitureFromBase64(base64Image);
-        furnitureDetection = fetchedFurnitureDetection;
-      }
-
-      // Fetch room detection if not provided
-      if (!roomDetection) {
-        const fetchedRoomDetection = await detectAndClassifyRoomsFromBase64(base64Image);
-        roomDetection = fetchedRoomDetection;
-      }
+    if (!roomDetection) {
+      const fetchedRoomDetection = await detectAndClassifyRoomsFromBase64(base64Image);
+      roomDetection = fetchedRoomDetection;
     }
 
     // STEP 1: Assign furniture to rooms based on spatial relationships
@@ -68,10 +67,39 @@ export const processFloorPlan = async (
       assignedFurniture
     );
 
-    // Create enhanced room detection object
+    // STEP 3: Extract and process dimensions using OCR
+    let ocrDimensions: DimensionAnnotation[] = [];
+    let roomDimensions = new Map<string, DimensionAnnotation[]>();
+    let ocrEnhancedRooms = [...enhancedRooms]; // Create a copy to modify
+
+    try {
+      // Extract dimensions from the image using OCR
+      ocrDimensions = await extractDimensionsFromImage(base64Image);
+      
+      if (ocrDimensions.length > 0) {
+        console.log(`Extracted ${ocrDimensions.length} dimensions via OCR:`, ocrDimensions);
+        
+        // Assign dimensions to rooms based on spatial proximity
+        roomDimensions = assignDimensionsToRooms(ocrDimensions, enhancedRooms);
+        
+        // Update room dimensions with OCR-verified values
+        ocrEnhancedRooms = enhancedRooms.map(room => {
+          const dimensions = roomDimensions.get(room.detection_id) || [];
+          if (dimensions.length > 0) {
+            return updateRoomWithOcrDimensions(room, dimensions);
+          }
+          return room;
+        });
+      }
+    } catch (ocrError) {
+      console.warn("OCR dimension extraction failed, continuing with AI estimates:", ocrError);
+      // Continue with AI-based estimates if OCR fails
+    }
+
+    // Create enhanced room detection object with OCR-verified dimensions
     const enhancedRoomDetection: ProcessedRoboflowResponse = {
       ...roomDetection,
-      predictions: enhancedRooms
+      predictions: ocrEnhancedRooms
     };
 
     // Create enhanced furniture detection object
@@ -80,15 +108,21 @@ export const processFloorPlan = async (
       predictions: assignedFurniture
     };
 
-    // Calculate total area with enhanced room classification
-    const totalArea = calculateTotalArea(enhancedRooms);
+    // Calculate total area with enhanced room classification and OCR dimensions
+    const totalArea = calculateTotalAreaWithOcr(ocrEnhancedRooms);
+
+    // Store OCR analysis results
+    const ocrAnalysisResult: OcrAnalysisResult = {
+      dimensions: ocrDimensions,
+      roomDimensions: roomDimensions
+    };
 
     // Try to get Gemini-enhanced result, but fallback if it fails
     try {
       // Import dynamically to avoid circular dependencies
       const { analyzeFloorPlan } = await import("@/services/GeminiReasoningService");
 
-      // Call Gemini for enhanced analysis
+      // Call Gemini for enhanced analysis, passing the OCR-enhanced room data
       const geminiResult = await analyzeFloorPlan(enhancedRoomDetection);
 
       // Check if this is already a fallback result from the Gemini service
@@ -101,6 +135,7 @@ export const processFloorPlan = async (
           imageUrl,
           roomDetection: enhancedRoomDetection,
           furnitureDetection: enhancedFurnitureDetection,
+          ocrAnalysis: ocrAnalysisResult,
           status: 'completed'
         };
       }
@@ -114,12 +149,11 @@ export const processFloorPlan = async (
         imageUrl,
         roomDetection: enhancedRoomDetection,
         furnitureDetection: enhancedFurnitureDetection,
+        ocrAnalysis: ocrAnalysisResult,
         status: 'completed'
       };
     } catch (geminiError) {
       console.warn("Gemini reasoning failed, using fallback:", geminiError);
-
-      // When an error occurs, ensure we use the fallback_ prefix
 
       // Fallback to basic estimation
       return {
@@ -131,6 +165,7 @@ export const processFloorPlan = async (
         status: 'completed',
         roomDetection: enhancedRoomDetection,
         furnitureDetection: enhancedFurnitureDetection,
+        ocrAnalysis: ocrAnalysisResult,
         notes: "Generated with fallback estimation due to AI processing error."
       };
     }
@@ -148,3 +183,24 @@ export const processFloorPlan = async (
     };
   }
 };
+
+/**
+ * Calculate total area using OCR-verified values when available
+ *
+ * @param rooms Array of rooms, some with OCR-verified dimensions
+ * @returns Total area in square meters
+ */
+export function calculateTotalAreaWithOcr(rooms: ClassifiedRoom[]): number {
+  let totalArea = 0;
+  
+  for (const room of rooms) {
+    // Use OCR-verified area if available, otherwise use AI-estimated area
+    if (room.ocrAreaM2) {
+      totalArea += room.ocrAreaM2;
+    } else if (room.dimensions && room.dimensions.areaM2) {
+      totalArea += room.dimensions.areaM2;
+    }
+  }
+  
+  return totalArea;
+}
