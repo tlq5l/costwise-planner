@@ -58,10 +58,19 @@ export default defineConfig(({ mode }) => ({
             return 'animations';
           }
 
-          // Charts and visualization
-          if (id.includes('node_modules/recharts') ||
-              id.includes('node_modules/d3')) {
-            return 'charts';
+          // Charts and visualization - separate recharts and d3 to avoid initialization conflicts
+          if (id.includes('node_modules/recharts')) {
+            return 'recharts';
+          }
+          if (id.includes('node_modules/d3')) {
+            return 'd3';
+          }
+          // Recharts dependencies that need to be bundled together
+          if (id.includes('node_modules/victory') || 
+              id.includes('node_modules/react-smooth') ||
+              id.includes('node_modules/recharts-scale') ||
+              id.includes('node_modules/resize-observer-polyfill')) {
+            return 'chart-utils';
           }
 
           // Keep project pages in separate chunks (they are already lazily loaded)
