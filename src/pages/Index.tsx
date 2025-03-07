@@ -58,36 +58,12 @@ const Home = () => {
 							className="text-center max-w-3xl mx-auto mb-16"
 						>
 							<h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-6">
-								AI-Powered Room Area Calculator
+								Floor Plan Analyzer
 							</h1>
 							<p className="text-xl text-gray-600 dark:text-gray-400">
-								Upload your floor plan and get detailed room measurements in
-								seconds, powered by advanced AI analysis.
+								Upload your floor plan and our AI will analyze it to detect rooms and calculate areas, helping you plan renovations, layouts, and calculate costs.
 							</p>
 						</motion.div>
-
-						{/* Quick Intro & Dashboard Overview Section */}
-						<section className="py-6">
-							<h2 className="text-2xl font-semibold mb-4">
-								Dashboard Overview
-							</h2>
-							<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-								<div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-									<h3 className="text-lg font-medium">Projects in Progress</h3>
-									<p className="text-4xl mt-2 font-bold">{projects.length}</p>
-								</div>
-								<div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-									<h3 className="text-lg font-medium">
-										Estimated Cost Savings
-									</h3>
-									<p className="text-4xl mt-2 font-bold">$28,000</p>
-								</div>
-								<div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-									<h3 className="text-lg font-medium">Leftover Materials</h3>
-									<p className="text-4xl mt-2 font-bold">12 Items</p>
-								</div>
-							</div>
-						</section>
 
 						<FileUploader onAnalysisComplete={handleAnalysisComplete} />
 

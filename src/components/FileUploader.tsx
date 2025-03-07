@@ -188,7 +188,7 @@ const FileUploader = ({ onAnalysisComplete }: FileUploaderProps) => {
             predictions: [],
             image: roomResults.fullResponse.image
           };
-          
+
           processFloorPlan(file, emptyFurnitureDetection, roomResults.fullResponse)
             .then(result => {
               // Update status and notify parent component
@@ -332,18 +332,6 @@ const FileUploader = ({ onAnalysisComplete }: FileUploaderProps) => {
 
   return (
     <div className="w-full max-w-3xl mx-auto">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="mb-8 text-center"
-      >
-        <h2 className="text-2xl font-medium mb-3">Floor Plan Analyzer</h2>
-        <p className="text-gray-600 dark:text-gray-400 max-w-xl mx-auto">
-          Upload your floor plan and our AI will analyze it to detect rooms and calculate areas, helping you plan renovations, layouts, and calculate costs.
-        </p>
-      </motion.div>
-
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
