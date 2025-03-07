@@ -25,11 +25,17 @@ export default defineConfig(({ mode }) => ({
     rollupOptions: {
       output: {
         manualChunks: (id) => {
-          // Specific vendor chunks
+          // Combine React and chart-related dependencies into one chunk to avoid 
+          // "Cannot read properties of undefined (reading 'PureComponent')" errors
           if (id.includes('node_modules/react/') ||
               id.includes('node_modules/react-dom/') ||
-              id.includes('node_modules/react-router-dom/')) {
-            return 'react-vendor';
+              id.includes('node_modules/react-router-dom/') ||
+              id.includes('node_modules/recharts') ||
+              id.includes('node_modules/victory') || 
+              id.includes('node_modules/react-smooth') ||
+              id.includes('node_modules/recharts-scale') ||
+              id.includes('node_modules/resize-observer-polyfill')) {
+            return 'react-and-charts';
           }
 
           // UI components chunk
@@ -58,19 +64,9 @@ export default defineConfig(({ mode }) => ({
             return 'animations';
           }
 
-          // Charts and visualization - separate recharts and d3 to avoid initialization conflicts
-          if (id.includes('node_modules/recharts')) {
-            return 'recharts';
-          }
+          // Keep d3 separate from recharts to avoid initialization conflicts
           if (id.includes('node_modules/d3')) {
             return 'd3';
-          }
-          // Recharts dependencies that need to be bundled together
-          if (id.includes('node_modules/victory') || 
-              id.includes('node_modules/react-smooth') ||
-              id.includes('node_modules/recharts-scale') ||
-              id.includes('node_modules/resize-observer-polyfill')) {
-            return 'chart-utils';
           }
 
           // Keep project pages in separate chunks (they are already lazily loaded)
