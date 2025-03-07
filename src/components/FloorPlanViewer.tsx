@@ -76,6 +76,7 @@ const FloorPlanViewer = ({
 		}
 	}, [roomDetection, isAnimating]);
 
+	// Keep furniture state but not use it in UI
 	const [furniture, setFurniture] = useState<FurnitureItem[]>(
 		furnitureDetection
 			? furnitureDetection.predictions.map((item) => ({
@@ -90,8 +91,7 @@ const FloorPlanViewer = ({
 	const [showDimensions, setShowDimensions] = useState(true);
 	const [showOcrDimensions, setShowOcrDimensions] = useState(true);
 	const [showAllRooms, setShowAllRooms] = useState(true);
-	const [showAllFurniture, setShowAllFurniture] = useState(true);
-	const [activeTab, setActiveTab] = useState<"rooms" | "furniture" | "ocr">("rooms");
+	const [activeTab, setActiveTab] = useState<"rooms" | "ocr">("rooms");
 	const [isCalibrationMode, setIsCalibrationMode] = useState(false);
 	const [calibrationPoints, setCalibrationPoints] = useState<{
 		start?: { x: number; y: number };
@@ -139,7 +139,7 @@ const FloorPlanViewer = ({
 		);
 	};
 
-	// Toggle furniture visibility
+	// Keep furniture toggle functions but they won't be used in UI
 	const toggleFurnitureVisibility = (furnitureId: string) => {
 		setFurniture((prevFurniture) =>
 			prevFurniture.map((item) =>
@@ -150,7 +150,6 @@ const FloorPlanViewer = ({
 		);
 	};
 
-	// Toggle highlight for a specific furniture item
 	const toggleFurnitureHighlight = (furnitureId: string) => {
 		setFurniture((prevFurniture) =>
 			prevFurniture.map((item) =>
@@ -194,14 +193,6 @@ const FloorPlanViewer = ({
 		setShowAllRooms(!showAllRooms);
 		setRooms((prevRooms) =>
 			prevRooms.map((room) => ({ ...room, isVisible: !showAllRooms })),
-		);
-	};
-
-	// Toggle all furniture visibility
-	const toggleAllFurniture = () => {
-		setShowAllFurniture(!showAllFurniture);
-		setFurniture((prevFurniture) =>
-			prevFurniture.map((item) => ({ ...item, isVisible: !showAllFurniture })),
 		);
 	};
 
@@ -359,34 +350,6 @@ const FloorPlanViewer = ({
 						}`}
 					/>
 				</button>
-
-				{/* Furniture visibility toggle */}
-				{furniture.length > 0 && (
-					<button
-						type="button"
-						className={`w-8 h-8 flex items-center justify-center rounded ${
-							activeTab === "furniture"
-								? "bg-amber-100 dark:bg-amber-900"
-								: "hover:bg-gray-100 dark:hover:bg-gray-800"
-						}`}
-						aria-label={
-							showAllFurniture ? "Hide all furniture" : "Show all furniture"
-						}
-						title="Toggle furniture"
-						onClick={() => {
-							setActiveTab("furniture");
-							toggleAllFurniture();
-						}}
-					>
-						<Sofa
-							className={`w-5 h-5 ${
-								activeTab === "furniture"
-									? "text-amber-600 dark:text-amber-400"
-									: "text-gray-700 dark:text-gray-300"
-							}`}
-						/>
-					</button>
-				)}
 			</div>
 
 			{/* Calibration Panel */}
@@ -493,22 +456,22 @@ const FloorPlanViewer = ({
 						Rooms
 					</button>
 
-					{furniture.length > 0 && (
+					{ocrAnalysis?.dimensions && ocrAnalysis.dimensions.length > 0 && (
 						<button
 							type="button"
-							onClick={() => setActiveTab("furniture")}
+							onClick={() => setActiveTab("ocr")}
 							className={`px-3 py-1 text-xs rounded-md ${
-								activeTab === "furniture"
-									? "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300"
+								activeTab === "ocr"
+									? "bg-cyan-100 text-cyan-700 dark:bg-cyan-900 dark:text-cyan-300"
 									: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300"
 							}`}
 						>
-							Furniture
+							OCR Dimensions
 						</button>
 					)}
 				</div>
 
-				{activeTab === "rooms" ? (
+				{activeTab === "rooms" && (
 					<div className="space-y-1.5 max-h-60 overflow-y-auto">
 						{Object.entries(ROOM_COLORS).map(([roomType, color]) => (
 							<div key={roomType} className="flex items-center text-xs">
@@ -518,20 +481,6 @@ const FloorPlanViewer = ({
 								/>
 								<span className="truncate capitalize">
 									{roomType.toLowerCase().replace("_", " ")}
-								</span>
-							</div>
-						))}
-					</div>
-				) : (
-					<div className="space-y-1.5 max-h-60 overflow-y-auto">
-						{Object.entries(FURNITURE_COLORS).map(([furnitureType, color]) => (
-							<div key={furnitureType} className="flex items-center text-xs">
-								<div
-									className="w-3 h-3 mr-2 flex-shrink-0"
-									style={{ backgroundColor: color, borderRadius: "2px" }}
-								/>
-								<span className="truncate capitalize">
-									{furnitureType.toLowerCase().replace("_", " ")}
 								</span>
 							</div>
 						))}
@@ -684,8 +633,10 @@ const FloorPlanViewer = ({
 												fontWeight="500"
 												className="select-none pointer-events-none"
 											>
-												{room.roomType}
-												{room.verifiedByOcr && "✓"}
+												Room {rooms.indexOf(room) + 1}
+												{room.verifiedByOcr && (
+													<tspan className="ml-1 text-cyan-500">✓</tspan>
+												)}
 											</text>
 										</g>
 									)}
@@ -892,77 +843,6 @@ const FloorPlanViewer = ({
 											</g>
 										))
 									}
-
-									{/* Furniture bounding boxes */}
-									{furniture.map(
-										(item) =>
-											item.isVisible && (
-												<motion.g
-													key={item.detection_id}
-													initial={{ opacity: 0 }}
-													animate={{
-														opacity: 1,
-														scale: item.isHighlighted ? 1.02 : 1,
-													}}
-													transition={{ duration: 0.5 }}
-													onClick={() =>
-														toggleFurnitureHighlight(item.detection_id)
-													}
-												>
-													{/* Furniture bounding box */}
-													<motion.rect
-														x={item.x - item.width / 2}
-														y={item.y - item.height / 2}
-														width={item.width}
-														height={item.height}
-														fill="transparent"
-														stroke={item.color}
-														strokeWidth={item.isHighlighted ? "2" : "1.5"}
-														strokeDasharray="5,3"
-														className="cursor-pointer transition-colors duration-300"
-														initial={{ opacity: 0 }}
-														animate={{
-															opacity: 0.9,
-															strokeWidth: item.isHighlighted ? 2 : 1.5,
-														}}
-														transition={{
-															opacity: { duration: 0.5 },
-															strokeWidth: { duration: 0.2 },
-														}}
-														whileHover={{ scale: 1.01 }}
-													/>
-
-													{/* Furniture icon */}
-													{showLabels && (
-														<g>
-															<rect
-																x={item.x - 30}
-																y={item.y - 10}
-																width="60"
-																height="20"
-																rx="4"
-																fill={item.color}
-																fillOpacity="0.2"
-																stroke={item.color}
-																strokeWidth="1"
-															/>
-															<text
-																x={item.x}
-																y={item.y + 5}
-																textAnchor="middle"
-																dominantBaseline="middle"
-																fill={item.color}
-																fontSize="9"
-																fontWeight="500"
-																className="select-none pointer-events-none"
-															>
-																{item.furnitureType}
-															</text>
-														</g>
-													)}
-												</motion.g>
-											),
-									)}
 								</svg>
 							</div>
 						</TransformComponent>
@@ -970,7 +850,7 @@ const FloorPlanViewer = ({
 				)}
 			</TransformWrapper>
 
-			{/* Bottom panel (tabs for room list and furniture list) */}
+			{/* Bottom panel (tabs for room list and OCR) */}
 			<div className="absolute bottom-4 left-4 right-4 z-20 bg-white dark:bg-gray-900 rounded-lg shadow-md p-3">
 				<div className="flex justify-between items-center mb-2">
 					<div className="flex space-x-2">
@@ -985,20 +865,6 @@ const FloorPlanViewer = ({
 						>
 							Rooms ({rooms.length})
 						</button>
-
-						{furniture.length > 0 && (
-							<button
-								type="button"
-								onClick={() => setActiveTab("furniture")}
-								className={`px-3 py-1 text-xs font-medium rounded-md ${
-									activeTab === "furniture"
-										? "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300"
-										: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300"
-								}`}
-							>
-								Furniture ({furniture.length})
-							</button>
-						)}
 
 						{/* OCR Dimensions tab - only show if OCR data exists */}
 						{ocrAnalysis?.dimensions && ocrAnalysis.dimensions.length > 0 && (
@@ -1018,25 +884,19 @@ const FloorPlanViewer = ({
 
 					<button
 						type="button"
-						onClick={() =>
-							activeTab === "rooms" ? toggleAllRooms() : toggleAllFurniture()
-						}
+						onClick={() => toggleAllRooms()}
 						className="px-3 py-1 text-xs rounded-md bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300"
 					>
-						{activeTab === "rooms"
-							? showAllRooms
-								? "Hide All"
-								: "Show All"
-							: showAllFurniture
-								? "Hide All"
-								: "Show All"}
+						{showAllRooms
+							? "Hide All"
+							: "Show All"}
 					</button>
 				</div>
 
 				<div className="max-h-40 overflow-y-auto">
 					{activeTab === "rooms" ? (
 						<div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-							{rooms.map((room) => (
+							{rooms.map((room, index) => (
 								<button
 									type="button"
 									key={room.detection_id}
@@ -1059,40 +919,9 @@ const FloorPlanViewer = ({
 										}}
 									/>
 									<span className="truncate capitalize">
-										{room.roomType}
+										Room {index + 1}
 										{room.verifiedByOcr && " ✓"}
 										({Math.round(room.ocrAreaM2 || room.dimensions.areaM2)} m²)
-									</span>
-								</button>
-							))}
-						</div>
-					) : activeTab === "furniture" ? (
-						<div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-							{furniture.map((item) => (
-								<button
-									type="button"
-									key={item.detection_id}
-									className={`flex items-center p-1.5 text-xs rounded-md border cursor-pointer transition-colors ${
-										item.isVisible
-											? "bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700"
-											: "bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600"
-									} ${
-										item.isHighlighted
-											? "ring-2 ring-amber-300 dark:ring-amber-700"
-											: ""
-									}`}
-									onClick={() => toggleFurnitureVisibility(item.detection_id)}
-								>
-									<div
-										className="w-3 h-3 mr-2 flex-shrink-0"
-										style={{
-											backgroundColor: item.color,
-											opacity: item.isVisible ? 1 : 0.5,
-											borderRadius: "2px",
-										}}
-									/>
-									<span className="truncate capitalize">
-										{item.furnitureType} {item.room ? "(In Room)" : ""}
 									</span>
 								</button>
 							))}

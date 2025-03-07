@@ -134,20 +134,11 @@ const FileUploader = ({ onAnalysisComplete }: FileUploaderProps) => {
     let animationTimer: NodeJS.Timeout;
 
     if (uploadStatus === "roomDetection" && detectedRooms.length > 0) {
-      // Calculate progress percentage for room detection (50% of total)
-      const progress = (detectedRooms.length / (detectedRooms[0].class_id + 5)) * 50;
-      setDetectionProgress(Math.min(progress, 50));
-
-      // If we've detected multiple rooms, simulate adding them one by one
-      if (detectionProgress >= 50) {
-        setUploadStatus("furnitureDetection");
-      }
-    } else if (uploadStatus === "furnitureDetection" && detectedFurniture.length > 0) {
-      // Calculate progress percentage for furniture detection (50% of total)
-      const progress = 50 + (detectedFurniture.length / (detectedFurniture.length + 3)) * 50;
+      // Calculate progress percentage for room detection (100% since we're only doing room detection now)
+      const progress = (detectedRooms.length / (detectedRooms[0].class_id + 5)) * 100;
       setDetectionProgress(Math.min(progress, 100));
 
-      // When furniture detection is complete
+      // If we've detected multiple rooms, simulate adding them one by one
       if (detectionProgress >= 100) {
         setUploadStatus("processing");
       }
@@ -156,7 +147,7 @@ const FileUploader = ({ onAnalysisComplete }: FileUploaderProps) => {
     return () => {
       if (animationTimer) clearTimeout(animationTimer);
     };
-  }, [uploadStatus, detectedRooms, detectedFurniture, detectionProgress]);
+  }, [uploadStatus, detectedRooms, detectionProgress]);
 
   const processFile = async () => {
     if (!file || !imageBase64) return;
@@ -168,89 +159,67 @@ const FileUploader = ({ onAnalysisComplete }: FileUploaderProps) => {
       // Short delay to show the uploading state
       await new Promise(resolve => setTimeout(resolve, 800));
 
-      // Furniture detection phase first
-      setUploadStatus("furnitureDetection");
+      // Skip the furniture detection phase and go straight to room detection
+      setUploadStatus("roomDetection");
 
-      // Dynamically import the furniture detection module
-      const { detectFurnitureWithAnimation } = await import("@/lib/animations/furnitureAnimations");
+      // Dynamically import the room detection module
+      const { detectRoomsWithAnimation } = await import("@/lib/animations/roomAnimations");
 
-      // Start furniture detection with animation
-      const furnitureResults = await detectFurnitureWithAnimation(imageBase64);
+      // Start the room detection with animation
+      const roomResults = await detectRoomsWithAnimation(imageBase64);
 
-      // Animation loop to show furniture being detected
-      const animateFurnitureDetection = async () => {
-        const nextItem = furnitureResults.getNextItem();
-        if (nextItem) {
-          setDetectedFurniture(prev => [...prev, nextItem]);
-          // Continue animating furniture
-          setTimeout(animateFurnitureDetection, 500);
+      // Animation loop to show rooms being detected
+      const animateRoomDetection = async () => {
+        const nextRoom = roomResults.getNextRoom();
+        if (nextRoom) {
+          setDetectedRooms(prev => [...prev, nextRoom]);
+          // Continue animating rooms
+          setTimeout(animateRoomDetection, 500);
         } else {
-          // Proceed to room detection after furniture detection
-          setUploadStatus("roomDetection");
+          // Room detection complete, proceed to Gemini reasoning
+          setUploadStatus("geminiReasoning");
 
-          // Dynamically import the room detection module
-          const { detectRoomsWithAnimation } = await import("@/lib/animations/roomAnimations");
+          // Dynamically import the floor plan processor
+          const { processFloorPlan } = await import("@/lib/analysis/floorPlanProcessor");
 
-          // Start the room detection with animation
-          const roomResults = await detectRoomsWithAnimation(imageBase64);
-
-          // Animation loop to show rooms being detected
-          const animateRoomDetection = async () => {
-            const nextRoom = roomResults.getNextRoom();
-            if (nextRoom) {
-              setDetectedRooms(prev => [...prev, nextRoom]);
-              // Continue animating rooms
-              setTimeout(animateRoomDetection, 500);
-            } else {
-              // Both detections complete, proceed to integration and Gemini reasoning
-              setUploadStatus("geminiReasoning");
-
-              // Dynamically import the floor plan processor
-              const { processFloorPlan } = await import("@/lib/analysis/floorPlanProcessor");
-
-              // Call our final process with both detection results
-              processFloorPlan(file, furnitureResults.fullResponse, roomResults.fullResponse)
-                .then(result => {
-                  // Update status and notify parent component
-                  setUploadStatus("success");
-
-                  // IMPORTANT: Update the UI with the enhanced room and furniture classifications
-                  // This ensures we're using the properly enhanced room classifications with furniture context
-                  if (result.roomDetection && 'predictions' in result.roomDetection) {
-                    const enhancedRooms = result.roomDetection.predictions as ClassifiedRoom[];
-                    setDetectedRooms(enhancedRooms);
-                  }
-
-                  if (result.furnitureDetection && 'predictions' in result.furnitureDetection) {
-                    const enhancedFurniture = result.furnitureDetection.predictions as FurnitureItem[];
-                    setDetectedFurniture(enhancedFurniture);
-                  }
-
-                  // Pass the selected project ID to the callback
-                  onAnalysisComplete(result, selectedProjectId);
-
-                  // Prepare toast message based on project selection
-                  let description = "Your floor plan has been analyzed successfully";
-                  if (selectedProjectId) {
-                    const projectName = projects.find(p => p.id === selectedProjectId)?.name;
-                    description += ` and added to "${projectName}"`;
-                  }
-
-                  toast({
-                    title: "Analysis complete",
-                    description,
-                  });
-                });
-            }
+          // Call our final process with only room detection results
+          // Pass empty furniture detection to keep the API unchanged
+          const emptyFurnitureDetection = {
+            predictions: [],
+            image: roomResults.fullResponse.image
           };
+          
+          processFloorPlan(file, emptyFurnitureDetection, roomResults.fullResponse)
+            .then(result => {
+              // Update status and notify parent component
+              setUploadStatus("success");
 
-          // Start the room animation
-          animateRoomDetection();
+              // IMPORTANT: Update the UI with the enhanced room classifications
+              if (result.roomDetection && 'predictions' in result.roomDetection) {
+                const enhancedRooms = result.roomDetection.predictions as ClassifiedRoom[];
+                setDetectedRooms(enhancedRooms);
+              }
+
+              // Pass the selected project ID to the callback
+              onAnalysisComplete(result, selectedProjectId);
+
+              // Prepare toast message based on project selection
+              let description = "Your floor plan has been analyzed successfully";
+              if (selectedProjectId) {
+                const projectName = projects.find(p => p.id === selectedProjectId)?.name;
+                description += ` and added to "${projectName}"`;
+              }
+
+              toast({
+                title: "Analysis complete",
+                description,
+              });
+            });
         }
       };
 
-      // Start the furniture animation
-      animateFurnitureDetection();
+      // Start the room animation
+      animateRoomDetection();
 
     } catch (error) {
       console.error("Error processing file:", error);
@@ -325,24 +294,6 @@ const FileUploader = ({ onAnalysisComplete }: FileUploaderProps) => {
               />
             );
           })}
-
-          {/* Furniture boxes */}
-          {detectedFurniture.map((item, index) => (
-            <motion.rect
-              key={item.detection_id}
-              x={item.x - item.width / 2}
-              y={item.y - item.height / 2}
-              width={item.width}
-              height={item.height}
-              fill="transparent"
-              stroke={item.color}
-              strokeWidth="1.5"
-              strokeDasharray="5,3"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 0.8 }}
-              transition={{ duration: 0.8, delay: index * 0.1 }}
-            />
-          ))}
         </svg>
 
         {/* Progress bar */}
@@ -358,14 +309,12 @@ const FileUploader = ({ onAnalysisComplete }: FileUploaderProps) => {
             <span>
               {uploadStatus === "roomDetection"
                 ? "Analyzing rooms..."
-                : uploadStatus === "furnitureDetection"
-                  ? "Detecting furniture..."
-                  : uploadStatus === "geminiReasoning"
-                    ? "Refining cost estimate..."
-                    : "Processing..."}
+                : uploadStatus === "geminiReasoning"
+                  ? "Refining area estimate..."
+                  : "Processing..."}
             </span>
             <div className="ml-auto">
-              {detectedRooms.length} rooms, {detectedFurniture.length} items
+              {detectedRooms.length} rooms detected
             </div>
           </div>
           <div className="w-full h-1 bg-gray-700 rounded-full mt-2">
@@ -391,7 +340,7 @@ const FileUploader = ({ onAnalysisComplete }: FileUploaderProps) => {
       >
         <h2 className="text-2xl font-medium mb-3">Floor Plan Analyzer</h2>
         <p className="text-gray-600 dark:text-gray-400 max-w-xl mx-auto">
-          Upload your floor plan and our AI will analyze it to detect rooms, furniture, and more, helping you plan renovations, layouts, and calculate costs.
+          Upload your floor plan and our AI will analyze it to detect rooms and calculate areas, helping you plan renovations, layouts, and calculate costs.
         </p>
       </motion.div>
 
@@ -526,7 +475,7 @@ const FileUploader = ({ onAnalysisComplete }: FileUploaderProps) => {
                 </div>
 
                 {/* Show detection animation when in that state */}
-                {(uploadStatus === "roomDetection" || uploadStatus === "furnitureDetection") && renderDetectionAnimation()}
+                {uploadStatus === "roomDetection" && renderDetectionAnimation()}
 
                 {uploadStatus === "idle" && (
                   <motion.button
