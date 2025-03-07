@@ -17,7 +17,8 @@ export function UnitSystemProvider({ children }: { children: ReactNode }) {
   // Initialize from localStorage if available, otherwise default to metric (Vietnamese)
   const [unitSystem, setUnitSystemState] = useState<UnitSystem>(() => {
     const savedSystem = localStorage.getItem(STORAGE_KEY);
-    return (savedSystem === "imperial" ? "imperial" : "metric") as UnitSystem;
+    // Explicitly set default to metric if no saved preference
+    return (savedSystem === "imperial") ? "imperial" : "metric";
   });
 
   // Persist to localStorage whenever unitSystem changes

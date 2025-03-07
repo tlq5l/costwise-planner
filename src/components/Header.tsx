@@ -122,7 +122,7 @@ const Header = ({ title = "Floor Plan Analyzer" }: HeaderProps) => {
 							onClick={openNewProjectModal}
 							className="ml-2 px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg transition-all duration-200 hover:bg-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-opacity-75 dark:bg-gray-800 dark:hover:bg-gray-700"
 						>
-							New Project
+							New Analysis
 						</button>
 					</motion.nav>
 				</div>
